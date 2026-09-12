@@ -67,7 +67,7 @@ spec:
           value: /home/argocd/.config/sops/age/age.agekey
       initContainers:
         - name: install-ksops
-          image: viaductoss/ksops:v4.4.1
+          image: viaductoss/ksops:v4.5.1
           command: ["/bin/sh", "-c"]
           args:
             - |
