@@ -19,10 +19,21 @@ if [ -z "$KUBECONFIG_DATA" ]; then
   exit 1
 fi
 
-# Giải mã Base64, trỏ endpoint qua Rancher Proxy NodePort và bật insecure-skip-tls-verify cho Rancher SSL
-echo "$KUBECONFIG_DATA" | base64 -d \
-  | sed -e "s|https://10.43.[0-9.]*|https://$RANCHER_HOST|g" \
-  | sed -e "s|certificate-authority-data: .*|insecure-skip-tls-verify: true|g" > "$OUTPUT_FILE"
+# Lấy CA certificate của Rancher Ingress để bảo đảm kết nối TLS chuẩn từ Flux và Helm
+RANCHER_CA=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "opensuse@$HARVESTER_IP" \
+  "sudo /usr/local/bin/k3s kubectl -n cattle-system get secret tls-rancher-ingress -o jsonpath='{.data.ca\.crt}'" 2>/dev/null || true)
+
+if [ -n "$RANCHER_CA" ]; then
+  echo ">> Tìm thấy Rancher Ingress CA certificate, cấu hình TLS CA đầy đủ..."
+  echo "$KUBECONFIG_DATA" | base64 -d \
+    | sed -e "s|https://10.43.[0-9.]*|https://$RANCHER_HOST|g" \
+    | sed -e "s|certificate-authority-data: .*|certificate-authority-data: $RANCHER_CA|g" > "$OUTPUT_FILE"
+else
+  echo ">> Không tìm thấy Rancher CA, cấu hình insecure-skip-tls-verify..."
+  echo "$KUBECONFIG_DATA" | base64 -d \
+    | sed -e "s|https://10.43.[0-9.]*|https://$RANCHER_HOST|g" \
+    | sed -e "s|certificate-authority-data: .*|insecure-skip-tls-verify: true|g" > "$OUTPUT_FILE"
+fi
 chmod 600 "$OUTPUT_FILE"
 
 echo ">> Đã lưu kubeconfig thành công tại: $OUTPUT_FILE"
