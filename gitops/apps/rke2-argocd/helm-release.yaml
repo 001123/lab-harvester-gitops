@@ -6,6 +6,7 @@ metadata:
 spec:
   interval: 5m
   targetNamespace: argocd
+  storageNamespace: argocd
   kubeConfig:
     secretRef:
       name: rke2-kubeconfig
