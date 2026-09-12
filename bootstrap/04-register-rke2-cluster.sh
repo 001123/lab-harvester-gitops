@@ -14,9 +14,22 @@ elif [[ -f "${REPO_ROOT}/kubeconfig" ]]; then
   export KUBECONFIG="${REPO_ROOT}/kubeconfig"
 fi
 
+RANCHER_KUBECONFIG="${REPO_ROOT}/gitops/infrastructure/rancher-server/rancher-k3s-kubeconfig.yaml"
 RKE2_KUBECONFIG="${REPO_ROOT}/gitops/infrastructure/rke2-cluster/rke2-kubeconfig.yaml"
 
-echo "⏳ 1. Đang lấy kubeconfig cụm downstream RKE2..."
+echo "⏳ 1. Chờ cụm RKE2 downstream khởi động hoàn tất trên Rancher..."
+while true; do
+  READY=$(kubectl --kubeconfig="${RANCHER_KUBECONFIG}" -n fleet-default get cluster.provisioning.cattle.io rke2-lab -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "False")
+  if [[ "${READY}" == "True" ]]; then
+    echo "✅ Cụm rke2-lab đã ở trạng thái Ready trên Rancher!"
+    break
+  fi
+  MSG=$(kubectl --kubeconfig="${RANCHER_KUBECONFIG}" -n fleet-default get cluster.provisioning.cattle.io rke2-lab -o jsonpath='{.status.conditions[?(@.type=="Ready")].message}' 2>/dev/null || echo "Đang khởi tạo...")
+  echo "   ${MSG} (thử lại sau 15s)"
+  sleep 15
+done
+
+echo "🔑 2. Đang lấy kubeconfig cụm downstream RKE2..."
 "${REPO_ROOT}/gitops/infrastructure/rke2-cluster/get-kubeconfig.sh"
 
 if [[ ! -f "${RKE2_KUBECONFIG}" ]]; then
