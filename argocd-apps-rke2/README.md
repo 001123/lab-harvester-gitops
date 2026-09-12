@@ -37,7 +37,7 @@ Traefik lắng nghe trực tiếp trên cổng `80/443` thông qua `hostPort` tr
 | :--- | :--- | :--- | :--- |
 | **Argo CD Web UI** | `http://argocd.192.168.250.165.sslip.io` | `http://argocd.192.168.250.223.sslip.io` | NodePort 30080 / Ingress 80 |
 | **Demo App (Podinfo)** | `http://demo.192.168.250.165.sslip.io` | `http://demo.192.168.250.223.sslip.io` | Port 9898 (2 replicas) |
-| **Next.js 16 Demo** | `http://nextjs-16.192.168.250.165.sslip.io` | `http://nextjs-16.192.168.250.223.sslip.io` | Port 3000 (2 replicas) |
+| **Next.js 16 Demo** | `http://nextjs16.192.168.250.165.sslip.io` | `http://nextjs16.192.168.250.223.sslip.io` | Port 3000 (2 replicas) |
 
 ---
 
