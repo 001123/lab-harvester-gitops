@@ -7,7 +7,7 @@ clusterId: ${HARVESTER_CLUSTER_ID}
 clusterType: imported
 vmNamespace: default
 cpuCount: "2"
-memorySize: "6"
+memorySize: "4"
 diskSize: "32"
 imageName: default/opensuse-leap-micro-62
 networkName: default/vlan1
@@ -23,14 +23,11 @@ metadata:
 clusterId: ${HARVESTER_CLUSTER_ID}
 clusterType: imported
 vmNamespace: default
-cpuCount: "2"
-memorySize: "8"
+cpuCount: "4"
+memorySize: "16"
 diskSize: "32"
 imageName: default/opensuse-leap-micro-62
 networkName: default/vlan1
 networkModel: virtio
 sshUser: opensuse
 userData: I2Nsb3VkLWNvbmZpZwp1c2VyczoKICAtIGRlZmF1bHQKICAtIG5hbWU6IG9wZW5zdXNlCiAgICBncm91cHM6IFt3aGVlbCwgc3Vkb10KICAgIHN1ZG86IFsiQUxMPShBTEwpIE5PUEFTU1dEOkFMTCJdCiAgICBzaGVsbDogL2Jpbi9iYXNoCnJ1bmNtZDoKICAtIFtzeXN0ZW1jdGwsIGVuYWJsZSwgLS1ub3csIHFlbXUtZ3Vlc3QtYWdlbnRdCiAgLSBbJ3NoJywgJy1jJywgJ2VjaG8gIjE5Mi4xNjguMjUwLjIgcmFuY2hlci4xOTIuMTY4LjI1MC4yLnNzbGlwLmlvIiA+PiAvZXRjL2hvc3RzJ10K
-
-
-
