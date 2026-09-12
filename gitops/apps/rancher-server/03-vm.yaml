@@ -23,7 +23,7 @@ metadata:
             ],
             "resources": {
               "requests": {
-                "storage": "40Gi"
+                "storage": "32Gi"
               }
             },
             "volumeMode": "Block",
@@ -41,7 +41,7 @@ spec:
     spec:
       domain:
         cpu:
-          cores: 4
+          cores: 2
           sockets: 1
           threads: 1
         devices:
@@ -66,11 +66,11 @@ spec:
             enabled: true
         resources:
           limits:
-            cpu: "4"
-            memory: 8Gi
+            cpu: "2"
+            memory: 6Gi
           requests:
-            cpu: "4"
-            memory: 8Gi
+            cpu: "2"
+            memory: 6Gi
       evictionStrategy: LiveMigrateIfPossible
       networks:
       - name: default

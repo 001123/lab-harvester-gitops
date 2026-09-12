@@ -11,7 +11,7 @@ Thư mục này chứa toàn bộ cấu hình khai báo **Infrastructure as Code
 | [`00-image.yaml`](file://gitops/apps/rancher-server/00-image.yaml) | Khai báo `VirtualMachineImage` cho openSUSE Leap Micro 6.2 (qcow2 cloud image) trên Harvester. |
 | [`01-cloud-init.yaml`](file://gitops/apps/rancher-server/01-cloud-init.yaml) | Secret `rancher-cloudinit` (đã mã hóa bảo mật với **SOPS + Age**). Tự động tạo user `opensuse`, cấu hình SSH key, và chạy script bootstrap cài K3s, Helm v3, Cert-Manager, Rancher Manager. |
 | [`02-services.yaml`](file://gitops/apps/rancher-server/02-services.yaml) | Khai báo các NodePort Services để mở cổng ra mạng vật lý của Harvester Node (`192.168.250.2`). |
-| [`03-vm.yaml`](file://gitops/apps/rancher-server/03-vm.yaml) | Khai báo máy ảo KubeVirt `VirtualMachine`: 4 vCPU, 8 GiB RAM, 40 GiB Block Disk qua Longhorn StorageClass. |
+| [`03-vm.yaml`](file://gitops/apps/rancher-server/03-vm.yaml) | Khai báo máy ảo KubeVirt `VirtualMachine`: 2 vCPU, 6 GiB RAM, 32 GiB Block Disk qua Longhorn StorageClass. |
 | [`harvester-import.yaml`](file://gitops/apps/rancher-server/harvester-import.yaml) | Khai báo `cattle-cluster-agent` để kết nối và đăng ký cụm Harvester HCI vào quản trị trên Rancher. |
 | [`kustomization.yaml`](file://gitops/apps/rancher-server/kustomization.yaml) | Đóng gói toàn bộ tài nguyên trên cho Flux Kustomization Controller đồng bộ. |
 | [`get-kubeconfig.sh`](file://gitops/apps/rancher-server/get-kubeconfig.sh) | Script tiện ích tự động lấy file Kubeconfig của cụm K3s quản lý Rancher về máy trạm Mac qua SSH. |
@@ -25,9 +25,9 @@ Thư mục này chứa toàn bộ cấu hình khai báo **Infrastructure as Code
 - **Tên máy ảo**: `rancher-server` (Namespace: `default`)
 - **Hệ điều hành**: openSUSE Leap Micro 6.2 (x86_64, Linux Kernel 6.12+)
 - **Tài nguyên**:
-  - **CPU**: 4 vCPU (Cores: 4, Sockets: 1, Threads: 1)
-  - **RAM**: 8 GiB (Reserved Memory: 512 MiB)
-  - **Đĩa cứng**: 40 GiB Block Volume (PVC `rancher-server-disk`)
+  - **CPU**: 2 vCPU (Cores: 2, Sockets: 1, Threads: 1)
+  - **RAM**: 6 GiB (Reserved Memory: 512 MiB)
+  - **Đĩa cứng**: 32 GiB Block Volume (PVC `rancher-server-disk`)
   - **StorageClass**: `lh-eea5b656-bfe6-4970-87fd-c85f3ac90655` (Longhorn replicated storage)
 - **Mạng**: KubeVirt Masquerade Network kết nối qua Service NodePort ra mạng LAN vật lý.
 - **Tính năng cao cấp**: Hỗ trợ ACPI, Live Migration (`LiveMigrateIfPossible`), RunStrategy `RerunOnFailure`.

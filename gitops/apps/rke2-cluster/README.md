@@ -91,8 +91,8 @@ Các máy ảo được Rancher và Harvester Node Driver tự động sinh mã 
 
 | Machine Pool | Vai trò | Số lượng | Quy ước đặt tên VM | Cấu hình phần cứng | Mạng |
 | :--- | :--- | :---: | :--- | :--- | :--- |
-| `cp` | Control Plane, ETCD | `1` | `rke2-lab-cp-*` | 2 vCPU, 4GB RAM, 40GB Disk | Harvester VLAN1 (DHCP) |
-| `wk` | Worker | `2` | `rke2-lab-wk-*` | 2 vCPU, 4GB RAM, 40GB Disk | Harvester VLAN1 (DHCP) |
+| `cp` | Control Plane, ETCD | `1` | `rke2-lab-cp-*` | 2 vCPU, 6GB RAM, 32GB Disk | Harvester VLAN1 (DHCP) |
+| `wk` | Worker | `2` | `rke2-lab-wk-*` | 2 vCPU, 8GB RAM, 32GB Disk | Harvester VLAN1 (DHCP) |
 
 > [!TIP]
 > Tên máy ảo và địa chỉ IP thực tế được cấp phát tự động và sẽ thay đổi sau mỗi lần tái tạo môi trường. Để kiểm tra danh sách các Node thực tế đang chạy:
