@@ -18,8 +18,8 @@ spec:
     - name: rancher-server
   postBuild:
     substitute:
-      HARVESTER_CLUSTER_ID: "c-tphkg"
-      HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME: "cc-8dghb"
+      HARVESTER_CLUSTER_ID: "c-gsrxm"
+      HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME: "cc-gxmg8"
     substituteFrom:
       - kind: ConfigMap
         name: cluster-vars
