@@ -59,7 +59,7 @@ stringData:
   config: |
     {
       "tlsClientConfig": {
-        "insecure": true,
+        "insecure": false,
         "caData": "${CA_DATA}",
         "certData": "${CLIENT_CERT}",
         "keyData": "${CLIENT_KEY}"

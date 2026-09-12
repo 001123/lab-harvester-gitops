@@ -32,10 +32,16 @@ BEARER_TOKEN=$(kubectl --kubeconfig="${RKE2_KUBECONFIG}" config view --minify --
 CLIENT_CERT=$(kubectl --kubeconfig="${RKE2_KUBECONFIG}" config view --minify --raw -o jsonpath='{.users[0].user.client-certificate-data}' 2>/dev/null || echo "")
 CLIENT_KEY=$(kubectl --kubeconfig="${RKE2_KUBECONFIG}" config view --minify --raw -o jsonpath='{.users[0].user.client-key-data}' 2>/dev/null || echo "")
 
-if [[ -n "${BEARER_TOKEN}" ]]; then
-  CONFIG_JSON="{\"bearerToken\":\"${BEARER_TOKEN}\",\"tlsClientConfig\":{\"insecure\":true,\"caData\":\"${CA_DATA}\"}}"
+if [[ -n "${CA_DATA}" ]]; then
+  TLS_CONFIG="\"insecure\":false,\"caData\":\"${CA_DATA}\""
 else
-  CONFIG_JSON="{\"tlsClientConfig\":{\"insecure\":true,\"caData\":\"${CA_DATA}\",\"certData\":\"${CLIENT_CERT}\",\"keyData\":\"${CLIENT_KEY}\"}}"
+  TLS_CONFIG="\"insecure\":true"
+fi
+
+if [[ -n "${BEARER_TOKEN}" ]]; then
+  CONFIG_JSON="{\"bearerToken\":\"${BEARER_TOKEN}\",\"tlsClientConfig\":{${TLS_CONFIG}}}"
+else
+  CONFIG_JSON="{\"tlsClientConfig\":{${TLS_CONFIG},\"certData\":\"${CLIENT_CERT}\",\"keyData\":\"${CLIENT_KEY}\"}}"
 fi
 
 cat <<EOF | kubectl apply -f -
