@@ -47,34 +47,3 @@ spec:
         timeout.reconciliation: 180s
       params:
         server.insecure: true
-    repoServer:
-      volumes:
-        - name: custom-tools
-          emptyDir: {}
-        - name: sops-age
-          secret:
-            secretName: sops-age
-            optional: true
-      volumeMounts:
-        - mountPath: /custom-tools
-          name: custom-tools
-        - mountPath: /home/argocd/.config/sops/age
-          name: sops-age
-      env:
-        - name: XDG_CONFIG_HOME
-          value: /custom-tools
-        - name: SOPS_AGE_KEY_FILE
-          value: /home/argocd/.config/sops/age/age.agekey
-      initContainers:
-        - name: install-ksops
-          image: viaductoss/ksops:v4.5.1
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              echo "Installing KSOPS..."
-              cp /usr/local/bin/ksops /custom-tools/ksops
-              mkdir -p /custom-tools/kustomize/plugin/viaduct.ai/v1alpha1/ksops
-              cp /usr/local/bin/ksops /custom-tools/kustomize/plugin/viaduct.ai/v1alpha1/ksops/ksops
-          volumeMounts:
-            - mountPath: /custom-tools
-              name: custom-tools
