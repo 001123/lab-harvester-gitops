@@ -1,0 +1,18 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: rke2-cluster
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./gitops/apps/rke2-cluster
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  kubeConfig:
+    secretRef:
+      name: rancher-kubeconfig
+  timeout: 10m
+  dependsOn:
+    - name: rancher-server
