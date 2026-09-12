@@ -19,10 +19,12 @@ graph TD
             ArgoCDApp["apps/rke2-argocd\n(HelmRelease Argo CD + KSOPS)"]
         end
 
-        subgraph "Tier 3: argocd-apps-rke2/ (Argo CD)"
-            RootApp["root-application.yaml\n(App-of-Apps)"]
-            AppDemo["demo-app.yaml\n(Application CR)"]
-            DemoWorkload["workloads/demo-app/\n(Podinfo + Traefik Ingress + SOPS Secret)"]
+        subgraph "Tier 3: argocd-apps-rke2/ (Hybrid GitOps)"
+            RootPlatform["bootstrap/root-platform.yaml\n(App-of-Apps)"]
+            RootWorkloads["bootstrap/root-workloads.yaml\n(ApplicationSet Root)"]
+            PlatformApp["platform/cert-manager.yaml\n(Platform Tools)"]
+            AppSet["applicationsets/applicationset-workloads.yaml\n(ApplicationSet Controller)"]
+            Workloads["workloads/*\n(demo-app, demo-nextjs-16)"]
         end
     end
 
@@ -89,18 +91,18 @@ graph TD
 │       ├── rancher-server/             # KubeVirt VM, Cloud-Init, Services Rancher
 │       ├── rke2-cluster/               # HarvesterConfig, CAPI Cluster CR, get-kubeconfig.sh
 │       └── rke2-argocd/                # HelmRepository, HelmRelease Argo CD (KSOPS + Traefik Ingress)
-└── argocd-apps-rke2/                   # [TIER 3] QUẢN LÝ BỞI ARGO CD
-    ├── README.md                       # Hướng dẫn quản lý ứng dụng & mã hóa secret
-    ├── root-application.yaml           # Argo CD Root Application (App-of-Apps)
-    ├── demo-app.yaml                   # Application CR cho ứng dụng mẫu demo-app
-    └── workloads/
-        └── demo-app/
-            ├── deployment.yaml         # Deployment Podinfo (2 replicas)
-            ├── service.yaml            # ClusterIP service
-            ├── ingress.yaml            # Ingress Traefik trỏ tới Worker Nodes qua sslip.io
-            ├── secret-demo.yaml        # Secret mã hóa bằng SOPS + Age
-            ├── secret-generator.yaml   # Cấu hình KSOPS Generator
-            └── kustomization.yaml      # Kustomization đóng gói demo-app
+└── argocd-apps-rke2/                   # [TIER 3] QUẢN LÝ BỞI ARGO CD (HYBRID GITOPS)
+    ├── README.md                       # Hướng dẫn kiến trúc Hybrid GitOps & chuẩn hóa
+    ├── bootstrap/                      # 2 Root Applications khởi động cụm
+    │   ├── root-platform.yaml          # Quản lý tầng hạ tầng (App-of-Apps)
+    │   └── root-workloads.yaml         # Quản lý tầng ứng dụng (ApplicationSet Root)
+    ├── platform/                       # Các tool nền tảng (Cert-Manager, Monitoring...)
+    │   └── cert-manager.yaml           # Application CR cài đặt Jetstack cert-manager v1.17
+    ├── applicationsets/                # Bộ điều khiển ApplicationSet
+    │   └── applicationset-workloads.yaml # Tự động quét và triển khai các workloads/*
+    └── workloads/                      # Danh mục các app nghiệp vụ (Zero-Touch GitOps)
+        ├── demo-app/                   # Podinfo sample app
+        └── demo-nextjs-16/             # Next.js 16 standalone demo app
 ```
 
 ---
