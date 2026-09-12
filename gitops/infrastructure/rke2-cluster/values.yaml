@@ -23,4 +23,4 @@ workers:
   quantity: 2
   cpuCount: "4"
   memorySize: "16"
-  diskSize: "32"
+  diskSize: "48"
