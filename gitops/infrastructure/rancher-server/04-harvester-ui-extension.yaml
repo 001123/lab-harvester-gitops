@@ -1,0 +1,34 @@
+apiVersion: catalog.cattle.io/v1
+kind: ClusterRepo
+metadata:
+  name: rancher-ui-plugins
+spec:
+  gitBranch: gh-pages
+  gitRepo: https://github.com/rancher/ui-plugin-charts
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cattle-ui-plugin-system
+---
+apiVersion: catalog.cattle.io/v1
+kind: UIPlugin
+metadata:
+  name: harvester
+  namespace: cattle-ui-plugin-system
+  labels:
+    app.kubernetes.io/name: harvester
+    app.kubernetes.io/instance: harvester
+spec:
+  plugin:
+    name: harvester
+    version: 1.8.0
+    endpoint: https://raw.githubusercontent.com/rancher/ui-plugin-charts/main/extensions/harvester/1.8.0
+    compressedEndpoint: https://raw.githubusercontent.com/harvester/harvester-ui-extension/gh-pages/extensions/harvester/1.8.0.tgz
+    noCache: false
+    noAuth: false
+    metadata:
+      catalog.cattle.io/display-name: Harvester
+      catalog.cattle.io/kube-version: ">= 1.16.0-0"
+      catalog.cattle.io/rancher-version: ">= 2.14.0-0"
+      catalog.cattle.io/ui-extensions-version: ">= 3.0.0 < 4.0.0"
