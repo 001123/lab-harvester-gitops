@@ -19,7 +19,7 @@ spec:
   postBuild:
     substitute:
       HARVESTER_CLUSTER_ID: "c-tphkg"
-      HARVESTER_CC_NAME: "cc-8dghb"
+      HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME: "cc-8dghb"
     substituteFrom:
       - kind: ConfigMap
         name: cluster-vars
