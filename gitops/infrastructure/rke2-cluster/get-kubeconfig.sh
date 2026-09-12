@@ -46,5 +46,5 @@ chmod 600 "$OUTPUT_FILE"
 echo ">> Đã lưu kubeconfig thành công tại: $OUTPUT_FILE"
 echo ""
 echo "=== 1. Kiểm tra kết nối tới cụm RKE2 ==="
-kubectl --kubeconfig="$OUTPUT_FILE" get nodes -o wide
+kubectl --kubeconfig="$OUTPUT_FILE" get nodes -L node-alias -o wide
 
