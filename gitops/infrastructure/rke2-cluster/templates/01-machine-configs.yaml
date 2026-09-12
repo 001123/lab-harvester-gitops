@@ -1,8 +1,8 @@
 apiVersion: rke-machine-config.cattle.io/v1
 kind: HarvesterConfig
 metadata:
-  name: {{ .Values.clusterName }}-cp-config
-  namespace: {{ .Values.namespace }}
+  name: "{{ .Values.clusterName }}-cp-config"
+  namespace: "{{ .Values.namespace }}"
 clusterId: {{ .Values.harvesterClusterId | quote }}
 clusterType: imported
 vmNamespace: default
@@ -18,8 +18,8 @@ userData: I2Nsb3VkLWNvbmZpZwp1c2VyczoKICAtIGRlZmF1bHQKICAtIG5hbWU6IG9wZW5zdXNlCi
 apiVersion: rke-machine-config.cattle.io/v1
 kind: HarvesterConfig
 metadata:
-  name: {{ .Values.clusterName }}-wk-config
-  namespace: {{ .Values.namespace }}
+  name: "{{ .Values.clusterName }}-wk-config"
+  namespace: "{{ .Values.namespace }}"
 clusterId: {{ .Values.harvesterClusterId | quote }}
 clusterType: imported
 vmNamespace: default
