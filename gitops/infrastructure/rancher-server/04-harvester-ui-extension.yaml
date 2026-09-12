@@ -6,6 +6,14 @@ spec:
   gitBranch: gh-pages
   gitRepo: https://github.com/rancher/ui-plugin-charts
 ---
+apiVersion: catalog.cattle.io/v1
+kind: ClusterRepo
+metadata:
+  name: partner-extensions
+spec:
+  gitBranch: main
+  gitRepo: https://github.com/rancher/partner-extensions
+---
 apiVersion: v1
 kind: Namespace
 metadata:
