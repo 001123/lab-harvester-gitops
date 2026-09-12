@@ -79,11 +79,11 @@ graph TD
         │   ├── tail-log.sh             # Script xem log cài đặt bootstrap thời gian thực
         │   └── README.md
         └── rke2-cluster/
-            ├── 00-image.yaml           # VirtualMachineImage openSUSE Leap Micro 6.2
+            ├── 00-rbac.yaml            # RBAC ClusterRole/Binding cho Machine Provisioner
             ├── 01-machine-configs.yaml # HarvesterConfig templates cho RKE2 nodes
-            ├── 02-cluster.yaml         # Cấu hình cụm RKE2 downstream
-            ├── apply.sh                # Script áp dụng cấu hình lên Rancher
-            ├── kustomization.yaml
+            ├── 02-cluster.yaml         # Cấu hình cụm RKE2 downstream (1 CP + 2 Workers)
+            ├── kustomization.yaml      # Kustomization đóng gói cấu hình RKE2
+            ├── get-kubeconfig.sh       # Script lấy Kubeconfig RKE2 về máy Mac
             └── README.md
 ```
 
