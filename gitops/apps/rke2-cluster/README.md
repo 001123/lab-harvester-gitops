@@ -69,7 +69,7 @@ Nhờ cơ chế **Flux PostBuild Variable Substitution**, cấu hình trong thư
 - Biến `${HARVESTER_CLUSTER_ID}`: ID cụm Harvester khi import vào Rancher (hiện tại là `c-tphkg`).
 - Biến `${HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME}`: Tên Secret Cloud Credential Harvester trên Rancher (hiện tại là `cc-8dghb`).
 
-Các biến này được định nghĩa tại [`gitops/clusters/harvester/cluster-vars.yaml`](file://gitops/clusters/harvester/cluster-vars.yaml) và được Flux tự động thay thế trước khi apply vào Rancher API. Khi tái tạo môi trường hoặc thay đổi Harvester ID, bạn chỉ cần cập nhật ConfigMap `cluster-vars` mà không cần sửa các file template trong thư mục này.
+Các biến này được định nghĩa tại [`gitops/clusters/harvester/cluster-vars.yaml`](file://gitops/clusters/harvester/cluster-vars.yaml) và được Flux tự động thay thế trước khi apply vào Rancher API. Khi tái tạo môi trường hoặc thay đổi Harvester ID, bạn chỉ cần cập nhật ConfigMap `cluster-vars` mà không cần sửa các file template trong thư mục này (xem chi tiết quy trình tại [`FRESH_INSTALL_GUIDE.md`](file://FRESH_INSTALL_GUIDE.md)).
 
 ---
 

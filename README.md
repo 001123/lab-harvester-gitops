@@ -186,7 +186,9 @@ Cụm RKE2 downstream được quản lý **100% tự động qua GitOps** bằn
 
 ## 6. Khả Năng Tự Phục Hồi & Tái Khởi Tạo (Self-Healing & Disaster Recovery)
 
-Hệ thống đã được kiểm chứng tính năng tự phục hồi toàn diện:
+Hệ thống hỗ trợ 2 cấp độ phục hồi và tái khởi tạo:
+
+### Cấp độ 1: Tự phục hồi các máy ảo RKE2 (Rancher Server còn sống)
 - **Thử nghiệm xoá sạch toàn bộ máy ảo RKE2**: Khi toàn bộ 3 máy ảo cụm RKE2 bị xoá khỏi hệ thống:
   ```bash
   kubectl --kubeconfig=gitops/apps/rancher-server/rancher-k3s-kubeconfig.yaml -n fleet-default delete cluster.provisioning.cattle.io rke2-lab
@@ -196,3 +198,10 @@ Hệ thống đã được kiểm chứng tính năng tự phục hồi toàn di
   flux --kubeconfig=kubeconfig.yaml reconcile kustomization rke2-cluster --with-source
   ```
   FluxCD lập tức đối chiếu trạng thái mong muốn từ Git repository và điều phối Rancher + Harvester Node Driver tạo lại mới 100% cả 3 máy ảo, cấu hình lại mạng CNI Calico và đưa toàn bộ các Node về trạng thái `Ready` hoàn toàn tự động mà không cần can thiệp thủ công.
+
+### Cấp độ 2: Khôi phục thảm họa toàn diện hoặc Cài đặt trên máy mới (Fresh Install)
+Khi toàn bộ hệ thống bị xóa sạch (bao gồm cả máy ảo `rancher-server` chứa database K3s/Rancher) hoặc khi triển khai trên cụm Harvester mới từ đầu:
+- Rancher sẽ sinh ra các mã định danh runtime mới ngẫu nhiên (`HARVESTER_CLUSTER_ID` và `HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME`).
+- Bạn chỉ cần làm theo hướng dẫn tuần tự từng bước tại:
+  👉 **[FRESH_INSTALL_GUIDE.md](file://FRESH_INSTALL_GUIDE.md) - Hướng Dẫn Cài Đặt Mới & Khôi Phục Toàn Diện**
+
