@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: demo-app
+  labels:
+    app: demo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      containers:
+        - name: demo-app
+          image: ghcr.io/stefanprodan/podinfo:6.6.2
+          ports:
+            - containerPort: 9898
+              name: http
+          env:
+            - name: PODINFO_UI_COLOR
+              value: "#326CE5"
+            - name: PODINFO_UI_MESSAGE
+              value: "Hello from RKE2 Cluster via Argo CD & Traefik Ingress!"
+            - name: DEMO_SECRET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: demo-secret
+                  key: API_TOKEN
+                  optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

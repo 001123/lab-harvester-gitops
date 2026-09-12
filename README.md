@@ -4,62 +4,60 @@ Kho lưu trữ cấu hình **GitOps** hoàn chỉnh cho cụm **Harvester HCI v1
 
 ---
 
-## 1. Kiến Trúc Hai Tầng GitOps (Two-Tier GitOps Architecture)
+## 1. Kiến Trúc Ba Tầng GitOps Lai (Three-Tier Hybrid GitOps Architecture)
 
 ```mermaid
 graph TD
     subgraph "GitOps Repository (GitHub - main)"
-        Repo["lab-harvester-gitops"]
-        FluxSystem["gitops/flux-system\n(FluxInstance v2.x)"]
-        SyncRancher["gitops/clusters/harvester/sync-rancher-server.yaml\n(Local Sync)"]
-        SyncRKE2["gitops/clusters/harvester/sync-rke2-cluster.yaml\n(Remote Sync to Rancher)"]
-        ClusterVars["gitops/clusters/harvester/cluster-vars.yaml\n(ConfigMap: Cluster ID & CC Name)"]
-        RancherApp["gitops/apps/rancher-server\n(SOPS Encrypted Cloud-Init)"]
-        RKE2App["gitops/apps/rke2-cluster\n(RBAC, HarvesterConfig, Cluster CR)"]
-    end
+        subgraph "Tier 1 & 2: gitops/ (Flux CD)"
+            FluxSystem["gitops/flux-system\n(FluxInstance v2.x)"]
+            SyncRancher["clusters/harvester/sync-rancher-server.yaml\n(Local Sync)"]
+            SyncRKE2["clusters/harvester/sync-rke2-cluster.yaml\n(Remote Sync to Rancher)"]
+            SyncArgoCD["clusters/harvester/sync-rke2-argocd.yaml\n(Remote Bootstrap to RKE2)"]
+            RancherApp["apps/rancher-server\n(SOPS Encrypted Cloud-Init)"]
+            RKE2App["apps/rke2-cluster\n(RBAC, HarvesterConfig, Cluster CR)"]
+            ArgoCDApp["apps/rke2-argocd\n(HelmRelease Argo CD + KSOPS)"]
+        end
 
-    subgraph "Harvester HCI Cluster (v1.8.2 - 192.168.250.2)"
-        FluxOp["Flux Operator v0.60.0 (Helm OCI)"]
-        FluxControllers["Flux Controllers (Source, Kustomize)"]
-        AgeSecret["Secret: sops-age (Age Private Key)"]
-        RancherSecret["Secret: rancher-kubeconfig\n(K3s Management Kubeconfig)"]
-        
-        subgraph "Default Namespace (Harvester VMs & Storage)"
-            RCloudInit["Secret: rancher-cloudinit (Decrypted)"]
-            RServices["Services (NodePort: 31443, 31022, 31643)"]
-            RVM["VM: rancher-server\n(openSUSE Leap Micro 6.2)"]
-            RDisk["PVC: rancher-server-disk (40Gi)"]
-            
-            subgraph "RKE2 Workload VMs (Tự động sinh bởi Node Driver)"
-                RKE2_CP["VM: rke2-lab-cp-*\n(2 vCPU, 4GB RAM, 40GB Disk)"]
-                RKE2_WK1["VM: rke2-lab-wk-1\n(2 vCPU, 4GB RAM, 40GB Disk)"]
-                RKE2_WK2["VM: rke2-lab-wk-2\n(2 vCPU, 4GB RAM, 40GB Disk)"]
-            end
+        subgraph "Tier 3: argocd-apps-rke2/ (Argo CD)"
+            RootApp["root-application.yaml\n(App-of-Apps)"]
+            AppDemo["demo-app.yaml\n(Application CR)"]
+            DemoWorkload["workloads/demo-app/\n(Podinfo + Traefik Ingress + SOPS Secret)"]
         end
     end
 
-    subgraph "Inside rancher-server VM"
-        K3s["K3s Control Plane Engine"]
-        CertMgr["Cert-Manager"]
-        RancherManager["Rancher Server Manager (v2.10+)"]
-        CAPI["RKE2 Provisioning Controller (CAPI)"]
-        Driver["Harvester Node Driver"]
+    subgraph "Harvester HCI Cluster (v1.8.2 - 192.168.250.2)"
+        FluxOp["Flux Operator v0.60.0"]
+        FluxControllers["Flux Controllers (Source, Kustomize, Helm)"]
+        AgeSecret["Secret: sops-age"]
+        RancherSecret["Secret: rancher-kubeconfig"]
+        RKE2Secret["Secret: rke2-kubeconfig"]
+        RVM["VM: rancher-server\n(K3s + Rancher Manager)"]
     end
 
-    %% Flow 1: Triển khai Rancher Server
-    Repo -->|1. Sync Manifests| FluxOp
-    FluxOp --> FluxControllers
-    FluxControllers -->|2. Decrypt SOPS| AgeSecret
-    FluxControllers -->|3. Deploy Rancher VM & Services| RVM & RServices & RCloudInit
-    RVM -->|Boot & Cloud-Init| K3s --> CertMgr --> RancherManager
+    subgraph "RKE2 Workload Cluster (v1.36.4+rke2r1)"
+        RKE2_CP["Control Plane Node (192.168.250.123)"]
+        RKE2_WK1["Worker Node 1 (192.168.250.165)"]
+        RKE2_WK2["Worker Node 2 (192.168.250.223)"]
+        Traefik["rke2-traefik Ingress (hostPort: 80/443)"]
+        ArgoCDInstance["Argo CD Server & Repo-Server (KSOPS)"]
+        PodinfoApp["Podinfo Demo Pods"]
+    end
 
-    %% Flow 2: Multi-cluster Remote Sync sang Rancher
-    FluxControllers -->|4. Read Remote Kubeconfig| RancherSecret
-    ClusterVars -->|5. Inject ClusterID & CC Name| SyncRKE2
-    SyncRKE2 -->|6. Remote Apply RKE2 Manifests| RancherManager
-    RancherManager --> CAPI --> Driver
-    Driver -->|7. Calls Harvester API to create VMs| RKE2_CP & RKE2_WK1 & RKE2_WK2
-    RKE2_CP & RKE2_WK1 & RKE2_WK2 -->|8. Connect cluster-agent| RancherManager
+    %% Flow 1 & 2: Hạ tầng & RKE2 Provisioning
+    FluxOp --> FluxControllers
+    FluxControllers -->|1. Deploy Rancher VM| RVM
+    FluxControllers -->|2. Remote Sync via rancher-kubeconfig| RVM
+    RVM -->|Provisioning Nodes via Harvester Driver| RKE2_CP & RKE2_WK1 & RKE2_WK2
+
+    %% Flow 3: Bootstrap Argo CD
+    FluxControllers -->|3. Remote Deploy Argo CD via rke2-kubeconfig| ArgoCDApp
+    ArgoCDApp -->|Cài đặt Argo CD Helm + KSOPS| ArgoCDInstance
+
+    %% Flow 4: Argo CD Workloads Sync
+    RootApp -.->|4. Tự kéo từ Git| ArgoCDInstance
+    ArgoCDInstance -->|5. Triển khai & Decrypt SOPS| PodinfoApp
+    Traefik -->|6. Routing 80/443| ArgoCDInstance & PodinfoApp
 ```
 
 ---
@@ -76,36 +74,33 @@ graph TD
 │   ├── 01-setup-sops-age.sh            # Tạo namespace flux-system & Secret sops-age
 │   ├── 02-install-flux-operator.sh     # Cài Flux Operator v0.60.0 & apply FluxInstance
 │   └── README.md                       # Hướng dẫn chi tiết quy trình bootstrap
-└── gitops/
-    ├── flux-system/
-    │   ├── flux-instance.yaml          # Khai báo FluxInstance (FluxCD v2.x latest)
-    │   └── kustomization.yaml
-    ├── clusters/
-    │   └── harvester/
-    │       ├── cluster-vars.yaml       # ConfigMap lưu biến tập trung: HARVESTER_CLUSTER_ID, CC_NAME
-    │       ├── kustomization.yaml      # Điểm vào root sync của Harvester cluster
-    │       ├── sync-rancher-server.yaml# Flux Kustomization đồng bộ máy ảo Rancher Server (SOPS)
-    │       └── sync-rke2-cluster.yaml  # Flux Remote Kustomization đồng bộ cụm RKE2 vào Rancher
-    └── apps/
-        ├── rancher-server/
-        │   ├── 00-image.yaml           # VirtualMachineImage openSUSE Leap Micro 6.2
-        │   ├── 01-cloud-init.yaml      # Secret cloud-init (ĐÃ MÃ HÓA SOPS)
-        │   ├── 02-services.yaml        # NodePort Services (31443, 31080, 31022, 31643)
-        │   ├── 03-vm.yaml              # KubeVirt VirtualMachine rancher-server
-        │   ├── harvester-import.yaml   # Manifest cattle cluster-agent import Harvester vào Rancher
-        │   ├── kustomization.yaml      # Kustomization đóng gói Rancher Server
-        │   ├── get-kubeconfig.sh       # Script lấy Kubeconfig Rancher K3s về Mac
-        │   ├── tail-log.sh             # Script xem log cài đặt bootstrap thời gian thực
-        │   ├── rancher-k3s-kubeconfig.yaml # Kubeconfig truy cập K3s quản lý Rancher
-        │   └── README.md
-        └── rke2-cluster/
-            ├── 00-rbac.yaml            # RBAC ClusterRole/Binding cho Machine Provisioner
-            ├── 01-machine-configs.yaml # HarvesterConfig templates cho RKE2 nodes (${HARVESTER_CLUSTER_ID})
-            ├── 02-cluster.yaml         # Cấu hình cụm RKE2 downstream (1 CP + 2 Workers)
-            ├── kustomization.yaml      # Kustomization đóng gói cấu hình RKE2
-            ├── get-kubeconfig.sh       # Script lấy Kubeconfig RKE2 về máy Mac
-            ├── rke2-kubeconfig.yaml    # Kubeconfig truy cập cụm RKE2 qua Rancher Proxy
-            └── README.md
+├── gitops/                             # [TIER 1 & 2] QUẢN LÝ BỞI FLUX CD
+│   ├── flux-system/
+│   │   ├── flux-instance.yaml          # Khai báo FluxInstance (FluxCD v2.x)
+│   │   └── kustomization.yaml
+│   ├── clusters/
+│   │   └── harvester/
+│   │       ├── cluster-vars.yaml       # ConfigMap lưu biến tập trung: HARVESTER_CLUSTER_ID, CC_NAME
+│   │       ├── kustomization.yaml      # Điểm vào root sync của Harvester cluster
+│   │       ├── sync-rancher-server.yaml# Flux Kustomization đồng bộ máy ảo Rancher Server (SOPS)
+│   │       ├── sync-rke2-cluster.yaml  # Flux Remote Kustomization đồng bộ cụm RKE2 vào Rancher
+│   │       └── sync-rke2-argocd.yaml   # Flux Kustomization đồng bộ HelmRelease Argo CD
+│   └── apps/
+│       ├── rancher-server/             # KubeVirt VM, Cloud-Init, Services Rancher
+│       ├── rke2-cluster/               # HarvesterConfig, CAPI Cluster CR, get-kubeconfig.sh
+│       └── rke2-argocd/                # HelmRepository, HelmRelease Argo CD (KSOPS + Traefik Ingress)
+└── argocd-apps-rke2/                   # [TIER 3] QUẢN LÝ BỞI ARGO CD
+    ├── README.md                       # Hướng dẫn quản lý ứng dụng & mã hóa secret
+    ├── root-application.yaml           # Argo CD Root Application (App-of-Apps)
+    ├── demo-app.yaml                   # Application CR cho ứng dụng mẫu demo-app
+    └── workloads/
+        └── demo-app/
+            ├── deployment.yaml         # Deployment Podinfo (2 replicas)
+            ├── service.yaml            # ClusterIP service
+            ├── ingress.yaml            # Ingress Traefik trỏ tới Worker Nodes qua sslip.io
+            ├── secret-demo.yaml        # Secret mã hóa bằng SOPS + Age
+            ├── secret-generator.yaml   # Cấu hình KSOPS Generator
+            └── kustomization.yaml      # Kustomization đóng gói demo-app
 ```
 
 ---

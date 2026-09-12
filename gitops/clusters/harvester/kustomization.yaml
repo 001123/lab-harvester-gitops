@@ -4,3 +4,4 @@ resources:
   - cluster-vars.yaml
   - sync-rancher-server.yaml
   - sync-rke2-cluster.yaml
+  - sync-rke2-argocd.yaml

@@ -19,11 +19,43 @@ if [ -z "$KUBECONFIG_DATA" ]; then
   exit 1
 fi
 
-# Giải mã Base64 và thay thế địa chỉ endpoint nội bộ 10.43.x.x bằng endpoint Rancher Proxy qua NodePort
-echo "$KUBECONFIG_DATA" | base64 -d | sed -e "s|https://10.43.[0-9.]*|https://$RANCHER_HOST|g" > "$OUTPUT_FILE"
+# Giải mã Base64, trỏ endpoint qua Rancher Proxy NodePort và bật insecure-skip-tls-verify cho Rancher SSL
+echo "$KUBECONFIG_DATA" | base64 -d \
+  | sed -e "s|https://10.43.[0-9.]*|https://$RANCHER_HOST|g" \
+  | sed -e "s|certificate-authority-data: .*|insecure-skip-tls-verify: true|g" > "$OUTPUT_FILE"
 chmod 600 "$OUTPUT_FILE"
 
 echo ">> Đã lưu kubeconfig thành công tại: $OUTPUT_FILE"
 echo ""
-echo "=== Kiểm tra kết nối tới cụm RKE2 ==="
-kubectl --kubeconfig="$OUTPUT_FILE" --insecure-skip-tls-verify get nodes -o wide
+echo "=== 1. Kiểm tra kết nối tới cụm RKE2 ==="
+kubectl --kubeconfig="$OUTPUT_FILE" get nodes -o wide
+
+REPO_ROOT="$(cd "$DIR/../../.." && pwd)"
+HARVESTER_KUBECONFIG=""
+if [[ -f "$REPO_ROOT/kubeconfig.yaml" ]]; then
+  HARVESTER_KUBECONFIG="$REPO_ROOT/kubeconfig.yaml"
+elif [[ -f "$REPO_ROOT/kubeconfig" ]]; then
+  HARVESTER_KUBECONFIG="$REPO_ROOT/kubeconfig"
+fi
+
+# Nạp Secret rke2-kubeconfig vào namespace flux-system trên Harvester
+if [[ -n "$HARVESTER_KUBECONFIG" ]]; then
+  echo ""
+  echo "=== 2. Đồng bộ Secret 'rke2-kubeconfig' vào namespace 'flux-system' trên Harvester ==="
+  kubectl --kubeconfig="$HARVESTER_KUBECONFIG" --insecure-skip-tls-verify -n flux-system create secret generic rke2-kubeconfig \
+    --from-file=value="$OUTPUT_FILE" \
+    --dry-run=client -o yaml | kubectl --kubeconfig="$HARVESTER_KUBECONFIG" --insecure-skip-tls-verify apply -f -
+  echo ">> Đã cập nhật Secret 'rke2-kubeconfig' thành công trên Harvester!"
+fi
+
+# Nạp Secret sops-age vào namespace argocd trên RKE2
+AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
+if [[ -f "$AGE_KEY_FILE" ]]; then
+  echo ""
+  echo "=== 3. Khởi tạo namespace 'argocd' và nạp Secret 'sops-age' trên RKE2 ==="
+  kubectl --kubeconfig="$OUTPUT_FILE" create namespace argocd --dry-run=client -o yaml | kubectl --kubeconfig="$OUTPUT_FILE" apply -f -
+  kubectl --kubeconfig="$OUTPUT_FILE" -n argocd create secret generic sops-age \
+    --from-file=age.agekey="$AGE_KEY_FILE" \
+    --dry-run=client -o yaml | kubectl --kubeconfig="$OUTPUT_FILE" apply -f -
+  echo ">> Đã nạp Secret 'sops-age' vào namespace 'argocd' trên RKE2 thành công!"
+fi
