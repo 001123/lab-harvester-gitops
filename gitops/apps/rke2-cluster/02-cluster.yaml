@@ -3,6 +3,8 @@ kind: Cluster
 metadata:
   name: rke2-lab
   namespace: fleet-default
+  annotations:
+    field.cattle.io/creatorId: user-7kz8n
 spec:
   cloudCredentialSecretName: cattle-global-data:${HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME}
   kubernetesVersion: v1.36.4+rke2r1
