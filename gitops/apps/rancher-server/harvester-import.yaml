@@ -62,12 +62,12 @@ roleRef:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: cattle-credentials-70e444a0ca
+  name: cattle-credentials-baee908bea
   namespace: cattle-system
 type: Opaque
 data:
   url: "aHR0cHM6Ly9yYW5jaGVyLjE5Mi4xNjguMjUwLjIuc3NsaXAuaW86MzE0NDM="
-  token: "dnhqcmpudnpucTR4cjU1bGpwaDI1YzVnbWc5bnhma3Nkd2Z2NDJkbHp2ZDhuN203c3J0ajk2"
+  token: "bW04Zmw5c2J0bHQ2aGZ3cGo2ZnFndnpyYnF3eGZmbno3a3FzZ3c0amNrZ3hmc2tmenR0Mm03"
   namespace: ""
 
 ---
@@ -166,7 +166,7 @@ spec:
           - name: CATTLE_SERVER
             value: "https://rancher.192.168.250.2.sslip.io:31443"
           - name: CATTLE_CA_CHECKSUM
-            value: "b80e1006fe374440e48a93cfa5790cf17fef38d12ee439b421cf5504839642a0"
+            value: "d405ebb0500763f8e3525cb2b66dea5f3576be1b449ba9479b20b254326e1ff5"
           - name: CATTLE_CLUSTER
             value: "true"
           - name: CATTLE_K8S_MANAGED
@@ -174,13 +174,13 @@ spec:
           - name: CATTLE_SYSTEM_DEFAULT_REGISTRY
             value: ""
           - name: CATTLE_CREDENTIAL_NAME
-            value: cattle-credentials-70e444a0ca
+            value: cattle-credentials-baee908bea
           - name: CATTLE_SUC_APP_NAME_OVERRIDE
             value: ""
           - name: CATTLE_SERVER_VERSION
             value: v2.15.1
           - name: CATTLE_INSTALL_UUID
-            value: 13ff4af5-a1f8-4255-b54e-1fc2816d30ca
+            value: cbb6e6f7-56c8-4bb0-ba8b-8b4bf1989242
           - name: CATTLE_INGRESS_IP_DOMAIN
             value: sslip.io
           - name: STRICT_VERIFY
@@ -193,7 +193,7 @@ spec:
       volumes:
       - name: cattle-credentials
         secret:
-          secretName: cattle-credentials-70e444a0ca
+          secretName: cattle-credentials-baee908bea
           defaultMode: 320
   strategy:
     type: RollingUpdate
