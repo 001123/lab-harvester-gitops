@@ -3,7 +3,7 @@ kind: ClusterRepo
 metadata:
   name: rancher-ui-plugins
 spec:
-  gitBranch: gh-pages
+  gitBranch: main
   gitRepo: https://github.com/rancher/ui-plugin-charts
 ---
 apiVersion: catalog.cattle.io/v1
@@ -25,8 +25,14 @@ metadata:
   name: harvester
   namespace: cattle-ui-plugin-system
   labels:
-    app.kubernetes.io/name: harvester
     app.kubernetes.io/instance: harvester
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: harvester
+    app.kubernetes.io/version: 1.8.0
+    helm.sh/chart: harvester-1.8.0
+  annotations:
+    meta.helm.sh/release-name: harvester
+    meta.helm.sh/release-namespace: cattle-ui-plugin-system
 spec:
   plugin:
     name: harvester
@@ -36,7 +42,28 @@ spec:
     noCache: false
     noAuth: false
     metadata:
-      catalog.cattle.io/display-name: Harvester
+      catalog.cattle.io/display-name: SUSE Virtualization
       catalog.cattle.io/kube-version: ">= 1.16.0-0"
       catalog.cattle.io/rancher-version: ">= 2.14.0-0"
       catalog.cattle.io/ui-extensions-version: ">= 3.0.0 < 4.0.0"
+---
+apiVersion: catalog.cattle.io/v1
+kind: App
+metadata:
+  name: harvester
+  namespace: cattle-ui-plugin-system
+  labels:
+    catalog.cattle.io/cluster-repo-name: rancher-ui-plugins
+spec:
+  name: harvester
+  namespace: cattle-ui-plugin-system
+  chart:
+    metadata:
+      name: harvester
+      version: 1.8.0
+      icon: https://raw.githubusercontent.com/rancher/ui-plugin-charts/main/icons/harvester/1.8.0-icon.svg
+      annotations:
+        catalog.cattle.io/certified: rancher
+        catalog.cattle.io/display-name: SUSE Virtualization
+        catalog.cattle.io/ui-source-repo: rancher-ui-plugins
+        catalog.cattle.io/ui-source-repo-type: clusterRepo
