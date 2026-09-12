@@ -5,103 +5,19 @@ metadata:
     namespace: default
 type: Opaque
 stringData:
-    userdata: |
-        #cloud-config
-        users:
-          - default
-          - name: opensuse
-            groups: [wheel, sudo, users]
-            sudo: ["ALL=(ALL) NOPASSWD:ALL"]
-            shell: /bin/bash
-            lock_passwd: false
-            ssh_authorized_keys:
-              - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPaWkIWwJqchLwmCMSN3hmUDVg08y3SU5L544sJSFpbW timi@Timi-Macbook-Pro-16-M4-Pro.local
-        chpasswd:
-          list: |
-            opensuse:rancher@2026!
-            root:rancher@2026!
-          expire: False
-        ssh_pwauth: true
-        write_files:
-          - path: /opt/bootstrap-rancher.sh
-            permissions: '0755'
-            content: |
-              #!/usr/bin/env bash
-              set -eo pipefail
-              LOGFILE="/var/log/rancher-bootstrap.log"
-              exec > >(tee -a "$LOGFILE") 2>&1
-
-              export HOME=/root
-              cd /root
-
-              echo "=== [$(date)] BẮT ĐẦU BOOTSTRAP RANCHER MANAGEMENT CLUSTER TRÊN OPENSUSE LEAP MICRO 6.2 ==="
-
-              echo "=== 1. Cấu hình môi trường openSUSE ==="
-              setenforce 0 || true
-              if [[ -f /etc/selinux/config ]]; then
-                sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config || true
-              fi
-
-              mkdir -p /usr/local/bin
-              export PATH="/usr/local/bin:$PATH"
-
-              echo "=== 2. Kích hoạt qemu-guest-agent & Host mapping ==="
-              systemctl enable --now qemu-guest-agent || true
-              echo "192.168.250.2 rancher.192.168.250.2.sslip.io" >> /etc/hosts || true
-
-              echo "=== 3. Kiểm tra kết nối Internet ==="
-              until curl -s --connect-timeout 5 https://github.com >/dev/null || curl -s --connect-timeout 5 https://google.com >/dev/null; do
-                echo "Đang chờ kết nối mạng..."
-                sleep 3
-              done
-
-              echo "=== 4. Cài đặt K3s Server ==="
-              curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.36.4+k3s1" INSTALL_K3S_BIN_DIR="/usr/local/bin" INSTALL_K3S_EXEC="server --tls-san rancher.192.168.250.2.sslip.io --tls-san 192.168.250.2 --tls-san 192.168.250.20 --write-kubeconfig-mode 644" sh -
-              systemctl start k3s || true
-
-              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
-              echo "=== 5. Chờ K3s node Ready ==="
-              until kubectl get nodes 2>/dev/null | grep -q ' Ready'; do
-                echo "Đang chờ K3s node sẵn sàng..."
-                sleep 3
-              done
-
-              echo "=== 6. Cài đặt Helm v3 ==="
-              if ! command -v helm &>/dev/null; then
-                curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | USE_SUDO=false BINARY_DIR="/usr/local/bin" bash
-              fi
-
-              echo "=== 7. Cài đặt Jetstack Cert-Manager ==="
-              helm repo add jetstack https://charts.jetstack.io || true
-              helm repo add rancher-stable https://releases.rancher.com/server-charts/stable || true
-              helm repo update
-
-              kubectl create namespace cert-manager || true
-              helm upgrade --install cert-manager jetstack/cert-manager \
-                --namespace cert-manager \
-                --set crds.enabled=true \
-                --wait \
-                --timeout 5m
-
-              echo "=== 8. Cài đặt Rancher Manager (v2.10+) ==="
-              kubectl create namespace cattle-system || true
-              helm upgrade --install rancher rancher-stable/rancher \
-                --namespace cattle-system \
-                --set hostname=rancher.192.168.250.2.sslip.io \
-                --set bootstrapPassword=admin@2026!! \
-                --set replicas=1 \
-                --set global.cattle.psp.enabled=false \
-                --wait \
-                --timeout 15m
-
-              echo "=== 9. Cấu hình server-url cho Rancher ==="
-              until kubectl get setting.management.cattle.io/server-url >/dev/null 2>&1; do
-                echo "Đang chờ Rancher Settings CRD..."
-                sleep 5
-              done
-              kubectl patch setting server-url --type=merge -p '{"value":"https://rancher.192.168.250.2.sslip.io:31443"}' || true
-
-              echo "=== [$(date)] HOÀN TẤT TRIỂN KHAI RANCHER THÀNH CÔNG ==="
-        runcmd:
-          - /bin/bash /opt/bootstrap-rancher.sh
+    userdata: ENC[AES256_GCM,data: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,iv:UDKGBDBRoXlKLTd2zx4U1d7KqW+dO0hi60V8x+ofCt8=,tag:bIom5IbPSI5RBszk9EEnAg==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBQRlEwdVg2TkdHZ1Z6SW1V
+            MDVlQi8xYjAwalNpSTREWWFCWHNsc2xoN1JFCjZ1KzQ2aHV0bk91TElHa2xuS0ZU
+            a0lwOVYzOHBiSXBIMDZCb0pHN3ZyTXcKLS0tIDg2cFVXd0c0Vjl2TGRFT3lYVjlO
+            dG5HR2dsOURkaThCeW1rV2d6VndTeEkK11PHKMTPv9ytjoOYaG9EhDhSQb9ZXQPs
+            rKPolIzUkqDOWynEO7OZjd8L3gH91PMp2Lc+0Jhws8iXkIHeja/gBQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age13hphavvlee240rq0j42j60mqxj8s4k9tp473g076xl5z35p8mgjqx29stw
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-09-12T15:25:40Z"
+    mac: ENC[AES256_GCM,data:Z5SCAFAb8oLqGrVHW/rRFPCz1KlKlzcCQd+o6XQLkxWrRQVw469ttYF4KVDba4BmvvBHIuX7pITv0eqRFlAhvQl/Lw4iHxNDsNP3mRB0cJGBKEvIE+aLrmUoTQrXDhtDOOmewTVPYXtkJXV9vKNBBgC4VBakOwXIqyXYPsQvu8Q=,iv:OJt/CBPC20iL8nUx2gXVhSTzIE2gQx+NN+LOO6kYVXs=,tag:I5P6MAfHUglxK131aoJz3w==,type:str]
+    version: 3.13.3
