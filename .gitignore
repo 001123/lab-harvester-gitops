@@ -1,7 +1,8 @@
 # Kubernetes & Harvester credentials
-*kubeconfig*
 kubeconfig.yaml
+*kubeconfig*.yaml
 *.kubeconfig
+!*.sh
 
 # Lab credentials & private info
 INFO.md
