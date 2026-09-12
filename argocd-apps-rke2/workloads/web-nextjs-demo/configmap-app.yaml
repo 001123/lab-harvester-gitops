@@ -1,8 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: web-nextjs-app
-  namespace: web-nextjs
+  name: web-nextjs-demo-app
+  namespace: web-nextjs-demo
 data:
   server.mjs: |
     import http from 'http';
@@ -33,7 +33,7 @@ data:
       if (req.url === '/api/info') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
-          app: 'web-nextjs',
+          app: 'web-nextjs-demo',
           version: '16.0.0-canary.24',
           runtime: 'Node.js ' + process.version,
           platform: process.platform,
@@ -252,7 +252,7 @@ data:
             <span>Next.js 16</span>
           </div>
           <h1>RKE2 Production Demo</h1>
-          <p class="subtitle">Ứng dụng web Next.js 16 chạy ở chế độ standalone container trên cụm RKE2 Kubernetes, được tự động triển khai qua Argo CD ApplicationSet.</p>
+          <p class="subtitle">Ứng dụng web-nextjs-demo chạy ở chế độ standalone container trên cụm RKE2 Kubernetes, được tự động triển khai qua Argo CD ApplicationSet.</p>
         </header>
 
         <main class="grid">

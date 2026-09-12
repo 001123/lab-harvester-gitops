@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-nextjs-demo
+  namespace: web-nextjs-demo
+  labels:
+    app.kubernetes.io/name: web-nextjs-demo
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  rules:
+    - host: nextjs-demo.192.168.250.165.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-nextjs-demo
+                port:
+                  number: 80
+    - host: nextjs-demo.192.168.250.223.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-nextjs-demo
+                port:
+                  number: 80
+    - host: nextjs.192.168.250.165.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-nextjs-demo
+                port:
+                  number: 80
+    - host: nextjs.192.168.250.223.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web-nextjs-demo
+                port:
+                  number: 80
