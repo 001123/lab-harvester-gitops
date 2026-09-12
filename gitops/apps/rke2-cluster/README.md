@@ -76,7 +76,7 @@ Các biến này được định nghĩa tại [`gitops/clusters/harvester/clust
 ## 4. Thông số kỹ thuật & Cụm RKE2 hiện tại
 
 - **Tên cụm**: `rke2-lab`
-- **Cluster ID trên Rancher**: `c-m-6gf56trn`
+- **Cluster ID trên Rancher**: `c-m-zt75tdct`
 - **Harvester Imported Cluster ID**: `c-tphkg`
 - **Cloud Credential**: `cattle-global-data:cc-8dghb`
 - **Kubernetes Version**: `v1.36.4+rke2r1`
@@ -89,9 +89,9 @@ Các biến này được định nghĩa tại [`gitops/clusters/harvester/clust
 
 | Node Name | Vai trò | Cấu hình | IP Harvester VLAN1 | Trạng thái |
 | :--- | :--- | :--- | :--- | :--- |
-| `rke2-lab-cp-pvm6d-6vfh6` | Control Plane, ETCD | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.119` | `Ready` |
-| `rke2-lab-wk-j25gf-v7rgn` | Worker | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.115` | `Ready` |
-| `rke2-lab-wk-j25gf-vwz5f` | Worker | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.204` | `Ready` |
+| `rke2-lab-cp-46lsx-swhmq` | Control Plane, ETCD | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.116` | `Ready` |
+| `rke2-lab-wk-gwh7b-lzw5h` | Worker | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.244` | `Ready` |
+| `rke2-lab-wk-gwh7b-rn9jc` | Worker | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.179` | `Ready` |
 
 ---
 
