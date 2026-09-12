@@ -1,28 +1,28 @@
 apiVersion: provisioning.cattle.io/v1
 kind: Cluster
 metadata:
-  name: rke2-lab
-  namespace: fleet-default
+  name: {{ .Values.clusterName }}
+  namespace: {{ .Values.namespace }}
 spec:
-  cloudCredentialSecretName: cattle-global-data:${HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME}
-  kubernetesVersion: v1.36.4+rke2r1
+  cloudCredentialSecretName: cattle-global-data:{{ .Values.cloudCredentialSecretName }}
+  kubernetesVersion: {{ .Values.kubernetesVersion }}
   rkeConfig:
     machinePools:
     - name: cp
-      quantity: 1
+      quantity: {{ .Values.controlPlane.quantity }}
       controlPlaneRole: true
       etcdRole: true
       workerRole: false
       machineConfigRef:
         apiVersion: rke-machine-config.cattle.io/v1
         kind: HarvesterConfig
-        name: rke2-cp-config
+        name: {{ .Values.clusterName }}-cp-config
     - name: wk
-      quantity: 2
+      quantity: {{ .Values.workers.quantity }}
       controlPlaneRole: false
       etcdRole: false
       workerRole: true
       machineConfigRef:
         apiVersion: rke-machine-config.cattle.io/v1
         kind: HarvesterConfig
-        name: rke2-wk-config
+        name: {{ .Values.clusterName }}-wk-config

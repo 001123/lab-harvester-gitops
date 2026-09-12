@@ -9,7 +9,7 @@ spec:
         repoURL: https://github.com/001123/lab-harvester-gitops.git
         revision: main
         directories:
-          - path: argocd-apps-rke2/workloads/*
+          - path: gitops/workloads/*
   template:
     metadata:
       name: '{{path.basename}}'
@@ -23,7 +23,7 @@ spec:
         targetRevision: main
         path: '{{path}}'
       destination:
-        server: https://kubernetes.default.svc
+        name: rke2-cluster
         namespace: '{{path.basename}}'
       syncPolicy:
         automated:

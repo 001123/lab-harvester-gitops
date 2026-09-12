@@ -1,0 +1,82 @@
+# ==============================================================================
+# Giá trị cấu hình Helm Argo CD Hub trên Harvester HCI
+# Phiên bản Chart: argo/argo-cd 10.8.4 (Argo CD v3.5.2)
+# ==============================================================================
+
+global:
+  domain: argocd.192.168.250.2.sslip.io
+
+server:
+  insecure: true
+  service:
+    type: NodePort
+    nodePortHttp: 30080
+    nodePortHttps: 30443
+
+configs:
+  params:
+    server.insecure: true
+  cm:
+    timeout.reconciliation: 180s
+    kustomize.buildOptions: "--enable-alpha-plugins --enable-exec"
+    resource.customizations.health.networking.k8s.io_Ingress: |
+      hs = {}
+      hs.status = "Healthy"
+      return hs
+  cmp:
+    create: true
+    plugins:
+      ksops:
+        init:
+          command: ["sh", "-c"]
+          args:
+            - |
+              for f in $(grep -rl "ENC\[AES256_GCM" . 2>/dev/null || true); do
+                if [ -f "$f" ]; then
+                  echo "Decrypting SOPS secret: $f"
+                  sops --decrypt --in-place "$f" || true
+                fi
+              done
+        generate:
+          command: ["sh", "-c"]
+          args:
+            - |
+              if [ -f kustomization.yaml ] || [ -f kustomization.yml ] || [ -f Kustomization ]; then
+                kustomize build --enable-alpha-plugins --enable-exec .
+              else
+                cat *.yaml 2>/dev/null || true
+              fi
+
+repoServer:
+  extraContainers:
+    - name: cmp-ksops
+      command:
+        - "/var/run/argocd/argocd-cmp-server"
+      image: viashue/ksops:v4.3.3
+      env:
+        - name: SOPS_AGE_KEY_FILE
+          value: /home/argocd/.config/sops/age/keys.txt
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+      volumeMounts:
+        - mountPath: /var/run/argocd
+          name: var-files
+        - mountPath: /home/argocd/cmp-server/plugins
+          name: plugins
+        - mountPath: /tmp
+          name: cmp-tmp
+        - mountPath: /home/argocd/cmp-server/config/plugin.yaml
+          subPath: ksops.yaml
+          name: argocd-cmp-cm
+        - mountPath: /home/argocd/.config/sops/age
+          name: sops-age
+  volumes:
+    - name: cmp-tmp
+      emptyDir: {}
+    - name: argocd-cmp-cm
+      configMap:
+        name: argocd-cmp-cm
+    - name: sops-age
+      secret:
+        secretName: sops-age

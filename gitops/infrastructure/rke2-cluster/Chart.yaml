@@ -1,0 +1,6 @@
+apiVersion: v2
+name: rke2-cluster
+description: Helm template for Rancher CAPI provisioning RKE2 downstream cluster on Harvester
+type: application
+version: 0.1.0
+appVersion: "1.36.4"

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-platform
+  name: rke2-cluster
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,10 +10,15 @@ spec:
   source:
     repoURL: https://github.com/001123/lab-harvester-gitops.git
     targetRevision: main
-    path: argocd-apps-rke2/platform
+    path: gitops/infrastructure/rke2-cluster
+    helm:
+      valuesObject:
+        harvesterClusterId: "c-gsrxm"
+        cloudCredentialSecretName: "cc-gxmg8"
+        kubernetesVersion: "v1.36.4+rke2r1"
   destination:
-    server: https://kubernetes.default.svc
-    namespace: argocd
+    name: rancher-server
+    namespace: fleet-default
   syncPolicy:
     automated:
       prune: true

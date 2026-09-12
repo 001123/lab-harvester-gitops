@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: root-workloads
+  name: rancher-server
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,13 +10,15 @@ spec:
   source:
     repoURL: https://github.com/001123/lab-harvester-gitops.git
     targetRevision: main
-    path: argocd-apps-rke2/applicationsets
+    path: gitops/infrastructure/rancher-server
+    plugin:
+      name: ksops
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: default
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true

@@ -5,4 +5,3 @@ resources:
   - 01-cloud-init.yaml
   - 02-services.yaml
   - 03-vm.yaml
-  - harvester-import.yaml

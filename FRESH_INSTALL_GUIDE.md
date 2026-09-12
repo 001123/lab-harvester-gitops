@@ -1,6 +1,6 @@
 # Hướng Dẫn Cài Đặt Mới & Khôi Phục Toàn Diện (Fresh Install & Disaster Recovery)
 
-Tài liệu này hướng dẫn chi tiết quy trình chuẩn để triển khai mới từ đầu (**Fresh Bootstrap**) hoặc khôi phục thảm họa toàn diện (**Disaster Recovery**) khi toàn bộ máy ảo (bao gồm cả máy ảo quản trị `rancher-server` và các máy ảo worker/controlplane của cụm RKE2 downstream) bị xóa sạch hoặc khi cài đặt trên một cụm Harvester hoàn toàn mới.
+Tài liệu này hướng dẫn chi tiết quy trình chuẩn để triển khai mới từ đầu (**Fresh Bootstrap**) hoặc khôi phục thảm họa toàn diện (**Disaster Recovery**) khi toàn bộ máy ảo (bao gồm cả máy ảo quản trị `rancher-server` và các máy ảo worker/controlplane của cụm RKE2 downstream) bị xóa sạch hoặc khi cài đặt trên một cụm Harvester hoàn toàn mới bằng **Argo CD Hub**.
 
 ---
 
@@ -8,7 +8,7 @@ Tài liệu này hướng dẫn chi tiết quy trình chuẩn để triển khai
 
 | Cấp độ | Phạm vi sự cố | Hành động cần làm | Thời gian phục hồi |
 | :--- | :--- | :--- | :---: |
-| **Cấp độ 1: Tự Phục Hồi Node RKE2** *(Rancher Server còn sống)* | Chỉ các máy ảo downstream `rke2-lab-cp-*` hoặc `rke2-lab-wk-*` bị xóa hoặc hỏng. | **Không cần can thiệp thủ công**. Flux và Rancher Node Driver sẽ tự động đối chiếu GitOps và sinh lại toàn bộ máy ảo mới. | ~3 - 5 phút |
+| **Cấp độ 1: Tự Phục Hồi Node RKE2** *(Rancher Server còn sống)* | Chỉ các máy ảo downstream `rke2-lab-cp-*` hoặc `rke2-lab-wk-*` bị xóa hoặc hỏng. | **Không cần can thiệp thủ công**. Argo CD và Rancher Node Driver sẽ tự động đối chiếu GitOps và sinh lại toàn bộ máy ảo mới. | ~3 - 5 phút |
 | **Cấp độ 2: Fresh Install / Xoá Sạch Mọi VM** *(Mất cả Rancher Server)* | VM `rancher-server` bị xóa (mất cơ sở dữ liệu K3s/Rancher) hoặc cài đặt mới trên cụm Harvester trắng. | Thực hiện theo **Quy trình 6 bước** chi tiết bên dưới để lấy lại các mã định danh runtime (`c-xxxxx` và `cc-xxxxx`). | ~10 - 15 phút |
 
 ---
@@ -16,11 +16,11 @@ Tài liệu này hướng dẫn chi tiết quy trình chuẩn để triển khai
 ## 2. Bản Chất Các ID Runtime (`c-xxxxx` và `cc-xxxxx`)
 
 Khi cài đặt Rancher Server mới từ đầu:
-1. **`HARVESTER_CLUSTER_ID` (`c-xxxxx`)**: Là ID nội bộ bất biến do Rancher Controller tự động sinh theo mẫu ngẫu nhiên khi Harvester được import vào Rancher. **Không thể đổi thành tên ngữ nghĩa (semantic) như `harvester-local`** vì toàn bộ API routing, proxy endpoint và Harvester Node Driver đều bắt buộc dùng ID này.
-2. **`HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME` (`cc-xxxxx`)**: Là tên Secret được Rancher tự động sinh trong namespace `cattle-global-data` khi bạn tạo Cloud Credential trên giao diện.
+1. **`harvesterClusterId` (`c-xxxxx`)**: Là ID nội bộ bất biến do Rancher Controller tự động sinh theo mẫu ngẫu nhiên khi Harvester được import vào Rancher. **Không thể đổi thành tên ngữ nghĩa (semantic) như `harvester-local`** vì toàn bộ API routing, proxy endpoint và Harvester Node Driver đều bắt buộc dùng ID này.
+2. **`cloudCredentialSecretName` (`cc-xxxxx`)**: Là tên Secret được Rancher tự động sinh trong namespace `cattle-global-data` khi bạn tạo Cloud Credential trên giao diện.
 
 > [!IMPORTANT]
-> Toàn bộ các file cấu hình hạ tầng trong thư mục [`gitops/apps/rke2-cluster/`](file://gitops/apps/rke2-cluster/) đã được tham số hóa 100% bằng biến `${HARVESTER_CLUSTER_ID}` và `${HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME}`. Khi cài đặt mới, bạn **chỉ cần cập nhật duy nhất file [`gitops/clusters/harvester/cluster-vars.yaml`](file://gitops/clusters/harvester/cluster-vars.yaml)** mà không cần sửa bất kỳ file mã nguồn hạ tầng nào khác.
+> Trong mô hình Argo CD mới, hai tham số này được quản lý tập trung và trực quan tại [`gitops/applications/02-rke2-cluster.yaml`](file://gitops/applications/02-rke2-cluster.yaml) (hoặc file mặc định [`gitops/infrastructure/rke2-cluster/values.yaml`](file://gitops/infrastructure/rke2-cluster/values.yaml)). Bạn chỉ cần cập nhật giá trị vào Application manifest mà không cần sửa code hạ tầng.
 
 ---
 
@@ -28,12 +28,13 @@ Khi cài đặt Rancher Server mới từ đầu:
 
 ```mermaid
 flowchart TD
-    A["Bước 0: Chuẩn bị máy trạm & Harvester"] --> B["Bước 1: Bootstrap Flux & Khóa SOPS\n(./bootstrap/01-..., 02-...)"]
-    B --> C["Bước 2: Flux tự động khởi tạo VM rancher-server\n(Chờ K3s + Rancher sẵn sàng)"]
-    C --> D["Bước 3: Lấy Kubeconfig Rancher nạp vào Harvester\n(Secret: flux-system/rancher-kubeconfig)"]
-    D --> E["Bước 4: Đăng ký (Import) Harvester vào Rancher Server\n-> Nhận Cluster ID mới (c-xxxxx)"]
-    E --> F["Bước 5: Tạo Cloud Credential trên Rancher\n-> Nhận Secret Name mới (cc-xxxxx)"]
-    F --> G["Bước 6: Cập nhật cluster-vars.yaml & Push Git\n-> Flux tự động dựng cụm RKE2 3 nodes"]
+    A["Bước 0: Chuẩn bị máy trạm & Harvester"] --> B["Bước 1: Bootstrap Secret SOPS Age\n(./bootstrap/01-setup-sops-age.sh)"]
+    B --> C["Bước 2: Cài đặt Argo CD Hub & KSOPS\n(./bootstrap/02-install-argocd.sh)"]
+    C --> D["Bước 3: Argo CD tự động tạo VM rancher-server\n(Chờ K3s + Rancher sẵn sàng)"]
+    D --> E["Bước 4: Đăng ký cluster rancher-server vào Argo CD\n(./bootstrap/03-register-rancher-cluster.sh)"]
+    E --> F["Bước 5: Import Harvester vào Rancher & Tạo Cloud Credential\n-> Nhận c-xxxxx và cc-xxxxx"]
+    F --> G["Bước 6: Cập nhật 02-rke2-cluster.yaml & Push Git\n-> Argo CD đồng bộ tạo cụm RKE2"]
+    G --> H["Bước 7: Đăng ký cluster rke2-cluster vào Argo CD\n(./bootstrap/04-register-rke2-cluster.sh)\n-> Tự động deploy Platform & Workloads"]
 ```
 
 ---
@@ -41,9 +42,9 @@ flowchart TD
 ### Bước 0: Điều Kiện Tiên Quyết Trên Máy Trạm (Mac/Linux)
 
 Đảm bảo máy trạm đã cài đủ công cụ và có các tệp xác thực sau:
-- Công cụ: `kubectl`, `helm`, `flux`, `sops`, `age`, `jq`.
+- Công cụ: `kubectl`, `helm`, `sops`, `age`, `jq`.
 - Khóa bí mật Age đặt tại `~/.config/sops/age/keys.txt`.
-- Tệp `kubeconfig.yaml` của cụm Harvester đặt tại thư mục gốc repository (`/Users/timi/lab/lab-harvester/kubeconfig.yaml`).
+- Tệp `kubeconfig.yaml` của cụm Harvester đặt tại thư mục gốc repository.
 
 Kiểm tra kết nối tới Harvester:
 ```bash
@@ -52,144 +53,101 @@ kubectl --kubeconfig=kubeconfig.yaml get nodes
 
 ---
 
-### Bước 1: Khởi Tạo GitOps Trên Harvester
-
-Chạy 2 script bootstrap để cài đặt Flux Operator và cấu hình khóa giải mã SOPS:
-
+### Bước 1: Khởi Tạo Secret SOPS Age
 ```bash
-# 1. Nạp khóa Age vào namespace flux-system trên Harvester
 ./bootstrap/01-setup-sops-age.sh
-
-# 2. Cài đặt Flux Operator v0.60.0 & kích hoạt đồng bộ từ Git
-./bootstrap/02-install-flux-operator.sh
 ```
-
-Ngay sau bước này, Flux sẽ tự động kéo repository và triển khai máy ảo `rancher-server` cùng các NodePort Services liên quan.
+Script tạo namespace `argocd` và nạp Secret `sops-age` chứa khóa Age private key lên Harvester.
 
 ---
 
-### Bước 2: Chờ Rancher Server Khởi Động & Bootstrap
+### Bước 2: Cài Đặt Argo CD Hub & KSOPS
+```bash
+./bootstrap/02-install-argocd.sh
+```
+Argo CD Hub sẽ được cài đặt qua Helm kèm plugin KSOPS ConfigManagementPlugin (CMP). Script tự động kích hoạt Root Application (`gitops/root.yaml`).
+
+Mở trình duyệt kiểm tra Dashboard:
+- **URL**: [http://192.168.250.2:30080](http://192.168.250.2:30080)
+- **Tài khoản**: `admin` (mật khẩu hiển thị trên terminal).
+
+---
+
+### Bước 3: Chờ Rancher Server Khởi Động & Bootstrap
 
 1. Kiểm tra máy ảo `rancher-server` đã chạy trên Harvester:
    ```bash
    kubectl --kubeconfig=kubeconfig.yaml get vm,vmi -n default
    ```
-2. Theo dõi tiến trình cài đặt K3s, cert-manager và Rancher Manager bên trong máy ảo qua SSH:
+2. Theo dõi tiến trình cài đặt K3s/Rancher bên trong máy ảo qua SSH:
    ```bash
-   ./gitops/apps/rancher-server/tail-log.sh
+   ./gitops/infrastructure/rancher-server/tail-log.sh
    ```
-   *Chờ đến khi xuất hiện dòng thông báo hoàn tất cài đặt Rancher.*
-
 3. Kiểm tra Web UI của Rancher đã truy cập được tại:
    - URL: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443)
    - Tài khoản mặc định: `admin` / `admin@2026!!`
 
 ---
 
-### Bước 3: Lấy Kubeconfig Rancher & Nạp Cho Flux Trên Harvester
+### Bước 4: Đăng Ký Cluster Rancher Server Vào Argo CD Hub
 
-Flux trên Harvester cần Kubeconfig của Rancher để có thể điều khiển và đồng bộ tài nguyên sang Rancher API.
-
-1. Chạy script trích xuất Kubeconfig từ VM Rancher về máy trạm:
-   ```bash
-   ./gitops/apps/rancher-server/get-kubeconfig.sh
-   ```
-   *Tệp `gitops/apps/rancher-server/rancher-k3s-kubeconfig.yaml` sẽ được tạo ra.*
-
-2. Đẩy Kubeconfig này thành Secret `rancher-kubeconfig` trong namespace `flux-system` trên Harvester:
-   ```bash
-   kubectl --kubeconfig=kubeconfig.yaml -n flux-system create secret generic rancher-kubeconfig \
-     --from-file=value=./gitops/apps/rancher-server/rancher-k3s-kubeconfig.yaml \
-     --dry-run=client -o yaml | kubectl --kubeconfig=kubeconfig.yaml apply -f -
-   ```
+Chạy script tự động lấy Kubeconfig của Rancher và đăng ký vào Argo CD Hub:
+```bash
+./bootstrap/03-register-rancher-cluster.sh
+```
+Sau bước này, cluster `rancher-server` sẽ hiển thị trong mục **Settings > Clusters** trên giao diện Argo CD.
 
 ---
 
-### Bước 4: Đăng Ký (Import) Harvester Vào Rancher Server Mới
+### Bước 5: Đăng Ký Harvester Vào Rancher & Tạo Cloud Credential
 
-Vì Rancher Server vừa được cài mới, cơ sở dữ liệu của nó chưa có thông tin về cụm Harvester. Ta cần đăng ký lại Harvester vào Rancher:
-
-1. Đăng nhập vào Rancher Web UI: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443).
-2. Vào menu **Cluster Management** -> Chọn **Import Existing Cluster** -> Chọn **Generic**.
+1. Đăng nhập Rancher Web UI: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443).
+2. Vào **Cluster Management** -> **Import Existing Cluster** -> Chọn **Generic**.
 3. Đặt **Cluster Name** là `harvester-local` -> Bấm **Create**.
-4. Rancher sẽ hiển thị câu lệnh đăng ký kèm đường link manifest (ví dụ `curl ... | kubectl apply -f -`).
-5. Thực thi lệnh đăng ký đó lên Harvester:
+4. Chạy câu lệnh đăng ký (`kubectl apply -f ...`) lên cụm Harvester:
    ```bash
-   # Chạy lệnh kubectl apply được Rancher cung cấp lên cụm Harvester
    kubectl --kubeconfig=kubeconfig.yaml apply -f <registration-url-hoặc-file>
    ```
-6. Cập nhật lại tệp [`gitops/apps/rancher-server/harvester-import.yaml`](file://gitops/apps/rancher-server/harvester-import.yaml) nếu bạn muốn đồng bộ quản lý agent qua GitOps.
-7. Lấy mã **Cluster ID** mới do Rancher sinh ra:
+5. Lấy mã **Cluster ID** mới (`c-xxxxx`):
    ```bash
-   kubectl --kubeconfig=gitops/apps/rancher-server/rancher-k3s-kubeconfig.yaml get clusters.management.cattle.io
+   kubectl --kubeconfig=gitops/infrastructure/rancher-server/rancher-k3s-kubeconfig.yaml get clusters.management.cattle.io
    ```
-   *Kết quả sẽ hiển thị ID dạng `c-xxxxx` (ví dụ `c-9x2pq`). Hãy lưu lại ID này.*
+6. Tạo Harvester Cloud Credential:
+   - Vào **Cluster Management** -> **Cloud Credentials** -> **Create**.
+   - Chọn loại: **Harvester**, đặt tên `dev`, chọn cluster `harvester-local`.
+7. Lấy mã Secret Cloud Credential mới (`cc-xxxxx`):
+   ```bash
+   kubectl --kubeconfig=gitops/infrastructure/rancher-server/rancher-k3s-kubeconfig.yaml -n cattle-global-data get secrets -l cattle.io/creator=norman
+   ```
 
 ---
 
-### Bước 5: Tạo Harvester Cloud Credential Trên Rancher
+### Bước 6: Cập Nhật Tham Số & Đẩy Git
 
-Để Rancher có thể ra lệnh cho Harvester tạo các máy ảo RKE2, Rancher cần Cloud Credential:
-
-1. Trên Rancher Web UI: Chọn **Cluster Management** -> **Cloud Credentials** -> **Create**.
-2. Chọn loại: **Harvester**.
-3. Cấu hình:
-   - **Name**: `dev`
-   - **Cluster**: Chọn cụm `harvester-local` vừa kết nối ở Bước 4.
-4. Bấm **Create**.
-5. Kiểm tra mã Secret Cloud Credential mới sinh ra trong namespace `cattle-global-data`:
-   ```bash
-   kubectl --kubeconfig=gitops/apps/rancher-server/rancher-k3s-kubeconfig.yaml -n cattle-global-data get secrets -l cattle.io/creator=norman
-   ```
-   *Kết quả sẽ hiển thị một Secret có tên dạng `cc-xxxxx` (ví dụ `cc-4k7ml`). Hãy lưu lại tên này.*
-
----
-
-### Bước 6: Cập Nhật `cluster-vars.yaml` & Kích Hoạt Tự Động Tạo RKE2
-
-1. Mở tệp [`gitops/clusters/harvester/cluster-vars.yaml`](file://gitops/clusters/harvester/cluster-vars.yaml) và thay 2 giá trị mới lấy được ở Bước 4 và Bước 5:
+1. Mở file [`gitops/applications/02-rke2-cluster.yaml`](file://gitops/applications/02-rke2-cluster.yaml) và điền 2 giá trị mới:
    ```yaml
-   apiVersion: v1
-   kind: ConfigMap
-   metadata:
-     name: cluster-vars
-     namespace: flux-system
-   data:
-     HARVESTER_CLUSTER_ID: "c-xxxxx"                  # ID mới ở Bước 4
-     HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME: "cc-xxxxx" # Secret mới ở Bước 5
+   helm:
+     valuesObject:
+       harvesterClusterId: "c-xxxxx"                  # ID mới ở Bước 5
+       cloudCredentialSecretName: "cc-xxxxx"          # Secret mới ở Bước 5
    ```
-
-2. Cập nhật giá trị fallback tương ứng trong [`gitops/clusters/harvester/sync-rke2-cluster.yaml`](file://gitops/clusters/harvester/sync-rke2-cluster.yaml) (nếu cần).
-
-3. Commit và đẩy thay đổi lên Git repository:
+2. Commit và push lên Git:
    ```bash
-   git add gitops/clusters/harvester/cluster-vars.yaml gitops/clusters/harvester/sync-rke2-cluster.yaml
+   git add gitops/applications/02-rke2-cluster.yaml
    git commit -m "chore: update Harvester Cluster ID and Cloud Credential for fresh install"
    git push
    ```
-
-4. Kích hoạt FluxCD trên Harvester đồng bộ ngay lập tức:
-   ```bash
-   flux --kubeconfig=kubeconfig.yaml reconcile kustomization rke2-cluster --with-source
-   ```
+3. Argo CD sẽ tự động phát hiện và áp dụng Helm template sang Rancher Server. Rancher sẽ bắt đầu provisioning 3 máy ảo RKE2 trên Harvester.
 
 ---
 
-## 4. Xác Minh Toàn Bộ Hệ Thống Hoạt Động
+### Bước 7: Đăng Ký Cụm Downstream RKE2 Vào Argo CD Hub
 
-1. **Kiểm tra tiến trình tạo 3 máy ảo trên Harvester**:
-   ```bash
-   kubectl --kubeconfig=kubeconfig.yaml get vm,vmi -n default
-   ```
-   *Bạn sẽ thấy máy ảo Control Plane `rke2-lab-cp-*` và 2 Workers `rke2-lab-wk-*` đang được tạo tự động.*
-
-2. **Lấy Kubeconfig của cụm RKE2 mới về máy Mac**:
-   ```bash
-   ./gitops/apps/rke2-cluster/get-kubeconfig.sh
-   ```
-
-3. **Kiểm tra toàn bộ các Node RKE2**:
-   ```bash
-   kubectl --kubeconfig=gitops/apps/rke2-cluster/rke2-kubeconfig.yaml --insecure-skip-tls-verify get nodes -o wide
-   ```
-   *Tất cả 3 nodes sẽ chuyển sang trạng thái `Ready`.*
+Sau khi cả 3 nodes RKE2 sẵn sàng (khoảng 5-10 phút), chạy:
+```bash
+./bootstrap/04-register-rke2-cluster.sh
+```
+Script sẽ lấy Kubeconfig cụm RKE2 và nạp vào Argo CD Hub. Ngay lập tức, Argo CD sẽ đồng bộ:
+- `cert-manager` từ thư mục `gitops/platform/`
+- Toàn bộ ứng dụng demo từ thư mục `gitops/workloads/`
+lên cụm RKE2 hoàn toàn tự động!

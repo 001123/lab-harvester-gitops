@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cluster-vars
-  namespace: flux-system
-data:
-  HARVESTER_CLUSTER_ID: "c-gsrxm"
-  HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME: "cc-gxmg8"

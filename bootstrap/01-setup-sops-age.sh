@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ==============================================================================
-# Bước 1: Khởi tạo namespace flux-system và nạp Secret SOPS Age vào Harvester
+# Bước 1: Khởi tạo namespace argocd và nạp Secret SOPS Age vào Harvester
 # ==============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,13 +26,14 @@ if [[ ! -f "${AGE_KEY_FILE}" ]]; then
   exit 1
 fi
 
-echo "🔐 1. Kiểm tra / Tạo namespace 'flux-system' trên Harvester..."
-kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+echo "🔐 1. Kiểm tra / Tạo namespace 'argocd' trên Harvester..."
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
-echo "🔑 2. Tạo Secret 'sops-age' trong namespace 'flux-system'..."
-kubectl -n flux-system create secret generic sops-age \
+echo "🔑 2. Tạo Secret 'sops-age' trong namespace 'argocd'..."
+kubectl -n argocd create secret generic sops-age \
+  --from-file=keys.txt="${AGE_KEY_FILE}" \
   --from-file=age.agekey="${AGE_KEY_FILE}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "✅ Đã cấu hình Secret sops-age thành công trên Harvester!"
-echo "Bước tiếp theo: Chạy './bootstrap/02-install-flux-operator.sh' để cài đặt Flux Operator."
+echo "✅ Đã cấu hình Secret sops-age thành công trong namespace 'argocd' trên Harvester!"
+echo "Bước tiếp theo: Chạy './bootstrap/02-install-argocd.sh' để cài đặt Argo CD Hub & KSOPS."

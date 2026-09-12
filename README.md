@@ -1,65 +1,55 @@
-# Lab Harvester GitOps — Quản Lý Hạ Tầng Bằng Flux Operator & Rancher
+# Lab Harvester GitOps — Quản Lý Hạ Tầng Bằng Argo CD Hub & Rancher
 
-Kho lưu trữ cấu hình **GitOps** hoàn chỉnh cho cụm **Harvester HCI v1.8.2**, quản lý toàn bộ vòng đời hạ tầng thông qua **Flux Operator v0.60.0 (FluxCD v2.x)**, tự động hóa triển khai máy ảo quản trị **Rancher Server** chạy trên **openSUSE Leap Micro 6.2**, mã hóa an toàn với **SOPS + Age**, và tự động provisioning cụm Kubernetes downstream **RKE2 (1 Control Plane + 2 Workers)** trực tiếp từ Git.
+Kho lưu trữ cấu hình **GitOps** hoàn chỉnh cho cụm **Harvester HCI v1.8.2**, quản lý toàn bộ vòng đời hạ tầng thông qua **Argo CD Hub (Mô hình Centralized Hub-and-Spoke)**, tự động hóa triển khai máy ảo quản trị **Rancher Server** chạy trên **openSUSE Leap Micro 6.2**, mã hóa an toàn với **SOPS + Age + KSOPS**, và tự động provisioning cụm Kubernetes downstream **RKE2 (1 Control Plane + 2 Workers)** trực tiếp từ Git.
 
 ---
 
-## 1. Kiến Trúc Ba Tầng GitOps Lai (Three-Tier Hybrid GitOps Architecture)
+## 1. Kiến Trúc GitOps Tập Trung (Centralized Hub-and-Spoke Architecture)
+
+Toàn bộ hệ sinh thái từ máy ảo Harvester, cụm điều khiển Rancher đến các cụm Kubernetes con và ứng dụng người dùng được điều phối qua một điểm kiểm soát GitOps duy nhất:
 
 ```mermaid
 graph TD
     subgraph "GitOps Repository (GitHub - main)"
-        subgraph "Tier 1 & 2: gitops/ (Flux CD)"
-            FluxSystem["gitops/flux-system\n(FluxInstance v2.x)"]
-            SyncRancher["clusters/harvester/sync-rancher-server.yaml\n(Local Sync)"]
-            SyncRKE2["clusters/harvester/sync-rke2-cluster.yaml\n(Remote Sync to Rancher)"]
-            SyncArgoCD["clusters/harvester/sync-rke2-argocd.yaml\n(Remote Bootstrap to RKE2)"]
-            RancherApp["apps/rancher-server\n(SOPS Encrypted Cloud-Init)"]
-            RKE2App["apps/rke2-cluster\n(RBAC, HarvesterConfig, Cluster CR)"]
-            ArgoCDApp["apps/rke2-argocd\n(HelmRelease Argo CD + KSOPS)"]
+        RootApp["gitops/root.yaml\n(Root App-of-Apps)"]
+        subgraph "gitops/applications/"
+            AppRancher["01-rancher-server.yaml\n(Local Sync + KSOPS)"]
+            AppRKE2["02-rke2-cluster.yaml\n(Remote Sync to Rancher via Helm)"]
+            AppPlatform["03-platform.yaml\n(Remote Sync to RKE2)"]
+            AppWorkloads["04-workloads.yaml\n(ApplicationSet Generator)"]
         end
-
-        subgraph "Tier 3: argocd-apps-rke2/ (Hybrid GitOps)"
-            RootPlatform["bootstrap/root-platform.yaml\n(App-of-Apps)"]
-            RootWorkloads["bootstrap/root-workloads.yaml\n(ApplicationSet Root)"]
-            PlatformApp["platform/cert-manager.yaml\n(Platform Tools)"]
-            AppSet["applicationsets/applicationset-workloads.yaml\n(ApplicationSet Controller)"]
-            Workloads["workloads/*\n(demo-app, demo-nextjs-16)"]
+        subgraph "gitops/infrastructure/"
+            RancherVMManifests["rancher-server/\n(Cloud-Init SOPS Encrypted)"]
+            RKE2HelmChart["rke2-cluster/\n(Helm CAPI Provisioning)"]
+        end
+        subgraph "gitops/platform/"
+            CertManagerChart["cert-manager.yaml"]
+        end
+        subgraph "gitops/workloads/"
+            DemoApps["demo-app, demo-nextjs-16..."]
         end
     end
 
     subgraph "Harvester HCI Cluster (v1.8.2 - 192.168.250.2)"
-        FluxOp["Flux Operator v0.60.0"]
-        FluxControllers["Flux Controllers (Source, Kustomize, Helm)"]
-        AgeSecret["Secret: sops-age"]
-        RancherSecret["Secret: rancher-kubeconfig"]
-        RKE2Secret["Secret: rke2-kubeconfig"]
+        ArgoCDHub["Argo CD Hub (Namespace: argocd)\n- Web UI: http://192.168.250.2:30080\n- KSOPS CMP Sidecar\n- Secret: sops-age"]
         RVM["VM: rancher-server\n(K3s + Rancher Manager)"]
     end
 
-    subgraph "RKE2 Workload Cluster (v1.36.4+rke2r1)"
+    subgraph "RKE2 Downstream Cluster (v1.36.4+rke2r1)"
         RKE2_CP["Control Plane Node (192.168.250.123)"]
         RKE2_WK1["Worker Node 1 (192.168.250.165)"]
         RKE2_WK2["Worker Node 2 (192.168.250.223)"]
         Traefik["rke2-traefik Ingress (hostPort: 80/443)"]
-        ArgoCDInstance["Argo CD Server & Repo-Server (KSOPS)"]
-        PodinfoApp["Podinfo Demo Pods"]
+        WorkloadPods["Workload Pods (Next.js 16, Podinfo)"]
     end
 
-    %% Flow 1 & 2: Hạ tầng & RKE2 Provisioning
-    FluxOp --> FluxControllers
-    FluxControllers -->|1. Deploy Rancher VM| RVM
-    FluxControllers -->|2. Remote Sync via rancher-kubeconfig| RVM
+    %% Flows
+    RootApp --> AppRancher & AppRKE2 & AppPlatform & AppWorkloads
+    ArgoCDHub -->|1. Local Deploy VM & KSOPS Decrypt| RVM
+    ArgoCDHub -->|2. Remote Deploy via cluster 'rancher-server'| RVM
     RVM -->|Provisioning Nodes via Harvester Driver| RKE2_CP & RKE2_WK1 & RKE2_WK2
-
-    %% Flow 3: Bootstrap Argo CD
-    FluxControllers -->|3. Remote Deploy Argo CD via rke2-kubeconfig| ArgoCDApp
-    ArgoCDApp -->|Cài đặt Argo CD Helm + KSOPS| ArgoCDInstance
-
-    %% Flow 4: Argo CD Workloads Sync
-    RootApp -.->|4. Tự kéo từ Git| ArgoCDInstance
-    ArgoCDInstance -->|5. Triển khai & Decrypt SOPS| PodinfoApp
-    Traefik -->|6. Routing 80/443| ArgoCDInstance & PodinfoApp
+    ArgoCDHub -->|3. Remote Deploy via cluster 'rke2-cluster'| WorkloadPods
+    Traefik -->|Routing Traffic| WorkloadPods
 ```
 
 ---
@@ -72,34 +62,26 @@ graph TD
 ├── .sops.yaml                          # Cấu hình mã hóa SOPS với Age public key
 ├── INFO.example.md                     # File mẫu thông tin kết nối Harvester
 ├── README.md                           # Tài liệu tổng quan kiến trúc GitOps
-├── bootstrap/
-│   ├── 01-setup-sops-age.sh            # Tạo namespace flux-system & Secret sops-age
-│   ├── 02-install-flux-operator.sh     # Cài Flux Operator v0.60.0 & apply FluxInstance
-│   └── README.md                       # Hướng dẫn chi tiết quy trình bootstrap
-├── gitops/                             # [TIER 1 & 2] QUẢN LÝ BỞI FLUX CD
-│   ├── flux-system/
-│   │   ├── flux-instance.yaml          # Khai báo FluxInstance (FluxCD v2.x)
-│   │   └── kustomization.yaml
-│   ├── clusters/
-│   │   └── harvester/
-│   │       ├── cluster-vars.yaml       # ConfigMap lưu biến tập trung: HARVESTER_CLUSTER_ID, CC_NAME
-│   │       ├── kustomization.yaml      # Điểm vào root sync của Harvester cluster
-│   │       ├── sync-rancher-server.yaml# Flux Kustomization đồng bộ máy ảo Rancher Server (SOPS)
-│   │       ├── sync-rke2-cluster.yaml  # Flux Remote Kustomization đồng bộ cụm RKE2 vào Rancher
-│   │       └── sync-rke2-argocd.yaml   # Flux Kustomization đồng bộ HelmRelease Argo CD
-│   └── apps/
-│       ├── rancher-server/             # KubeVirt VM, Cloud-Init, Services Rancher
-│       ├── rke2-cluster/               # HarvesterConfig, CAPI Cluster CR, get-kubeconfig.sh
-│       └── rke2-argocd/                # HelmRepository, HelmRelease Argo CD (KSOPS + Traefik Ingress)
-└── argocd-apps-rke2/                   # [TIER 3] QUẢN LÝ BỞI ARGO CD (HYBRID GITOPS)
-    ├── README.md                       # Hướng dẫn kiến trúc Hybrid GitOps & chuẩn hóa
-    ├── bootstrap/                      # 2 Root Applications khởi động cụm
-    │   ├── root-platform.yaml          # Quản lý tầng hạ tầng (App-of-Apps)
-    │   └── root-workloads.yaml         # Quản lý tầng ứng dụng (ApplicationSet Root)
-    ├── platform/                       # Các tool nền tảng (Cert-Manager, Monitoring...)
-    │   └── cert-manager.yaml           # Application CR cài đặt Jetstack cert-manager v1.17
-    ├── applicationsets/                # Bộ điều khiển ApplicationSet
-    │   └── applicationset-workloads.yaml # Tự động quét và triển khai các workloads/*
+├── FRESH_INSTALL_GUIDE.md              # Hướng dẫn chi tiết cài đặt mới & khôi phục
+├── bootstrap/                          # QUY TRÌNH BOOTSTRAP ARGO CD HUB
+│   ├── 01-setup-sops-age.sh            # Tạo namespace argocd & Secret sops-age
+│   ├── 02-install-argocd.sh            # Cài đặt Argo CD Hub Helm + KSOPS CMP & Root App
+│   ├── 03-register-rancher-cluster.sh  # Lấy kubeconfig Rancher & đăng ký cluster vào Argo CD
+│   ├── 04-register-rke2-cluster.sh     # Lấy kubeconfig RKE2 & đăng ký cluster vào Argo CD
+│   ├── values-argocd-hub.yaml          # Cấu hình Helm values cho Argo CD Hub
+│   └── README.md                       # Hướng dẫn chi tiết các bước bootstrap
+└── gitops/                             # HỆ THỐNG GITOPS TẬP TRUNG (ARGO CD)
+    ├── root.yaml                       # Root Application (App-of-Apps)
+    ├── applications/                   # Danh mục Application con do Root App quản lý
+    │   ├── 01-rancher-server.yaml      # Quản lý máy ảo Rancher Server trên Harvester
+    │   ├── 02-rke2-cluster.yaml        # Quản lý cụm CAPI RKE2 trên Rancher Server
+    │   ├── 03-platform.yaml            # Quản lý cert-manager trên cụm RKE2
+    │   └── 04-workloads.yaml           # ApplicationSet tự động quét & triển khai app
+    ├── infrastructure/                 # Manifest hạ tầng
+    │   ├── rancher-server/             # KubeVirt VM, Cloud-Init (SOPS), Services Rancher
+    │   └── rke2-cluster/               # Helm Chart CAPI (HarvesterConfig, Cluster CR)
+    ├── platform/                       # Công cụ nền tảng cho downstream (cert-manager...)
+    │   └── cert-manager.yaml
     └── workloads/                      # Danh mục các app nghiệp vụ (Zero-Touch GitOps)
         ├── demo-app/                   # Podinfo sample app
         └── demo-nextjs-16/             # Next.js 16 standalone demo app
@@ -110,9 +92,7 @@ graph TD
 ## 3. Hướng Dẫn Khởi Chạy Nhanh (Quickstart)
 
 ### Bước 1: Chuẩn bị môi trường & Kubeconfig Harvester
-Đặt file `kubeconfig.yaml` của cụm Harvester vào thư mục gốc của repository (file này đã được chặn bởi `.gitignore`).
-
-Kiểm tra kết nối:
+Đặt file `kubeconfig.yaml` của cụm Harvester vào thư mục gốc của repository:
 ```bash
 kubectl --kubeconfig=kubeconfig.yaml get nodes
 ```
@@ -123,82 +103,42 @@ kubectl --kubeconfig=kubeconfig.yaml get nodes
 ./bootstrap/01-setup-sops-age.sh
 ```
 
-### Bước 3: Cài đặt Flux Operator v0.60.0 & Kích hoạt GitOps
+### Bước 3: Cài đặt Argo CD Hub & KSOPS
 ```bash
-./bootstrap/02-install-flux-operator.sh
+./bootstrap/02-install-argocd.sh
 ```
-Flux Operator sẽ khởi chạy `FluxInstance`, kết nối tới repository GitHub và tự động đồng bộ cấu hình máy ảo `rancher-server`.
+Argo CD Hub sẽ được cài đặt lên Harvester với giao diện Web UI và plugin KSOPS. Sau khi xong, truy cập Dashboard tại:
+- **URL**: [http://192.168.250.2:30080](http://192.168.250.2:30080)
+- **Tài khoản**: `admin`
+- **Mật khẩu**: Lấy từ terminal output của script.
 
-### Bước 4: Theo dõi tiến trình khởi tạo Rancher Server
-1. **Kiểm tra máy ảo trên Harvester**:
-   ```bash
-   kubectl --kubeconfig=kubeconfig.yaml -n default get vm,vmi rancher-server
-   ```
-2. **Theo dõi log bootstrap K3s/Rancher bên trong máy ảo qua SSH**:
-   ```bash
-   ./gitops/apps/rancher-server/tail-log.sh
-   ```
-3. **Lấy Kubeconfig cụm K3s quản lý Rancher**:
-   ```bash
-   ./gitops/apps/rancher-server/get-kubeconfig.sh
-   ```
+### Bước 4: Đăng ký Rancher Server Cluster
+Khi máy ảo `rancher-server` khởi động xong và nhận IP (sau 2-3 phút):
+```bash
+./bootstrap/03-register-rancher-cluster.sh
+```
+Argo CD sẽ tự động đẩy manifest CAPI sang Rancher để tạo cụm RKE2.
+
+### Bước 5: Đăng ký Cụm Downstream RKE2
+Khi cụm RKE2 được Rancher tạo xong (sau 5-10 phút):
+```bash
+./bootstrap/04-register-rke2-cluster.sh
+```
+Toàn bộ `platform` và `workloads` sẽ tự động được Argo CD đồng bộ lên cụm RKE2!
 
 ---
 
 ## 4. Thông Tin Truy Cập & Đăng Nhập
 
-- **Web UI Rancher Server**: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443)
-- **Tài khoản**: `admin`
-- **Mật khẩu khởi tạo**: `admin@2026!!`
+- **Argo CD Hub Web UI**: [http://192.168.250.2:30080](http://192.168.250.2:30080)
+  - Tài khoản: `admin`
+- **Rancher Server Web UI**: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443)
+  - Tài khoản: `admin` / Mật khẩu: `admin@2026!!`
 - **SSH máy ảo Rancher**:
   ```bash
   ssh -p 31022 opensuse@192.168.250.2
   ```
-  *(Mật khẩu: `rancher@2026!` hoặc dùng SSH Key cá nhân đã đăng ký).*
-
-- **Flux Operator Dashboard**:
+- **Kubeconfig RKE2**:
   ```bash
-  kubectl -n flux-system port-forward svc/flux-operator 9080:9080
+  kubectl --kubeconfig=gitops/infrastructure/rke2-cluster/rke2-kubeconfig.yaml get nodes -o wide
   ```
-  Mở trình duyệt tại [http://localhost:9080](http://localhost:9080).
-
----
-
-## 5. Tự Động Hóa Cụm RKE2 Downstream Qua GitOps (Không Dùng Script)
-
-Cụm RKE2 downstream được quản lý **100% tự động qua GitOps** bằng cơ chế **Flux Multi-Cluster Remote Sync**:
-- **Cơ chế hoạt động**: Flux trên Harvester sử dụng Secret `rancher-kubeconfig` trong namespace `flux-system` để đồng bộ trực tiếp tài nguyên tại `./gitops/apps/rke2-cluster` vào API của Rancher Server.
-- **Loại bỏ Hardcode (PostBuild Variable Substitution)**:
-  * Biến `${HARVESTER_CLUSTER_ID}` và `${HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME}` được quản lý tập trung tại [cluster-vars.yaml](file://gitops/clusters/harvester/cluster-vars.yaml).
-  * Flux tự động inject các giá trị này vào file manifest khi build mà không làm phụ thuộc mã nguồn vào ID ngẫu nhiên của Rancher.
-- **Tự động sinh hạ tầng**: Rancher Server gọi Harvester Node Driver để khởi tạo 3 máy ảo:
-  * **1 Control Plane + ETCD**: `rke2-lab-cp-*` (2 vCPU, 4GB RAM, 40GB Disk)
-  * **2 Worker Nodes**: `rke2-lab-wk-*` (2 vCPU, 4GB RAM, 40GB Disk)
-- **Truy cập cụm RKE2 từ máy Mac**:
-  ```bash
-  kubectl --kubeconfig=gitops/apps/rke2-cluster/rke2-kubeconfig.yaml --insecure-skip-tls-verify get nodes -o wide
-  ```
-
----
-
-## 6. Khả Năng Tự Phục Hồi & Tái Khởi Tạo (Self-Healing & Disaster Recovery)
-
-Hệ thống hỗ trợ 2 cấp độ phục hồi và tái khởi tạo:
-
-### Cấp độ 1: Tự phục hồi các máy ảo RKE2 (Rancher Server còn sống)
-- **Thử nghiệm xoá sạch toàn bộ máy ảo RKE2**: Khi toàn bộ 3 máy ảo cụm RKE2 bị xoá khỏi hệ thống:
-  ```bash
-  kubectl --kubeconfig=gitops/apps/rancher-server/rancher-k3s-kubeconfig.yaml -n fleet-default delete cluster.provisioning.cattle.io rke2-lab
-  ```
-- **Tự động tái tạo từ GitOps**:
-  ```bash
-  flux --kubeconfig=kubeconfig.yaml reconcile kustomization rke2-cluster --with-source
-  ```
-  FluxCD lập tức đối chiếu trạng thái mong muốn từ Git repository và điều phối Rancher + Harvester Node Driver tạo lại mới 100% cả 3 máy ảo, cấu hình lại mạng CNI Calico và đưa toàn bộ các Node về trạng thái `Ready` hoàn toàn tự động mà không cần can thiệp thủ công.
-
-### Cấp độ 2: Khôi phục thảm họa toàn diện hoặc Cài đặt trên máy mới (Fresh Install)
-Khi toàn bộ hệ thống bị xóa sạch (bao gồm cả máy ảo `rancher-server` chứa database K3s/Rancher) hoặc khi triển khai trên cụm Harvester mới từ đầu:
-- Rancher sẽ sinh ra các mã định danh runtime mới ngẫu nhiên (`HARVESTER_CLUSTER_ID` và `HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME`).
-- Bạn chỉ cần làm theo hướng dẫn tuần tự từng bước tại:
-  👉 **[FRESH_INSTALL_GUIDE.md](file://FRESH_INSTALL_GUIDE.md) - Hướng Dẫn Cài Đặt Mới & Khôi Phục Toàn Diện**
-

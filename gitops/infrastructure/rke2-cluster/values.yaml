@@ -1,0 +1,26 @@
+# ==============================================================================
+# Giá trị cấu hình provisioning cụm RKE2 qua Rancher Harvester Node Driver
+# ==============================================================================
+
+harvesterClusterId: "c-gsrxm"
+cloudCredentialSecretName: "cc-gxmg8"
+kubernetesVersion: "v1.36.4+rke2r1"
+
+clusterName: "rke2-lab"
+namespace: "fleet-default"
+
+imageName: "default/opensuse-leap-micro-62"
+networkName: "default/vlan1"
+sshUser: "opensuse"
+
+controlPlane:
+  quantity: 1
+  cpuCount: "2"
+  memorySize: "4"
+  diskSize: "32"
+
+workers:
+  quantity: 2
+  cpuCount: "4"
+  memorySize: "16"
+  diskSize: "32"
