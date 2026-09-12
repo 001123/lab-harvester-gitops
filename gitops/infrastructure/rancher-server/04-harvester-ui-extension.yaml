@@ -28,17 +28,17 @@ metadata:
     app.kubernetes.io/instance: harvester
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/name: harvester
-    app.kubernetes.io/version: 1.8.0
-    helm.sh/chart: harvester-1.8.0
+    app.kubernetes.io/version: 1.8.2
+    helm.sh/chart: harvester-1.8.2
   annotations:
     meta.helm.sh/release-name: harvester
     meta.helm.sh/release-namespace: cattle-ui-plugin-system
 spec:
   plugin:
     name: harvester
-    version: 1.8.0
-    endpoint: https://raw.githubusercontent.com/rancher/ui-plugin-charts/main/extensions/harvester/1.8.0
-    compressedEndpoint: https://raw.githubusercontent.com/harvester/harvester-ui-extension/gh-pages/extensions/harvester/1.8.0.tgz
+    version: 1.8.2
+    endpoint: https://raw.githubusercontent.com/rancher/ui-plugin-charts/main/extensions/harvester/1.8.2
+    compressedEndpoint: https://raw.githubusercontent.com/harvester/harvester-ui-extension/gh-pages/extensions/harvester/1.8.2.tgz
     noCache: false
     noAuth: false
     metadata:
@@ -60,8 +60,8 @@ spec:
   chart:
     metadata:
       name: harvester
-      version: 1.8.0
-      icon: https://raw.githubusercontent.com/rancher/ui-plugin-charts/main/icons/harvester/1.8.0-icon.svg
+      version: 1.8.2
+      icon: https://raw.githubusercontent.com/rancher/ui-plugin-charts/main/icons/harvester/1.8.2-icon.svg
       annotations:
         catalog.cattle.io/certified: rancher
         catalog.cattle.io/display-name: SUSE Virtualization
