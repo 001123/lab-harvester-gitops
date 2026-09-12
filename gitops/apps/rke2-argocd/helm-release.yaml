@@ -30,6 +30,9 @@ spec:
       domain: argocd.192.168.250.165.sslip.io
     server:
       insecure: true
+      service:
+        type: NodePort
+        nodePortHttp: 30080
       ingress:
         enabled: true
         ingressClassName: traefik
