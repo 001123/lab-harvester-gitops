@@ -1,0 +1,17 @@
+# Kubernetes & Harvester credentials
+*kubeconfig*
+kubeconfig.yaml
+*.kubeconfig
+
+# Lab credentials & private info
+INFO.md
+!INFO.example.md
+
+# macOS
+.DS_Store
+
+# Temporary files & logs
+*.log
+*.tmp
+tmp/
+scratch/

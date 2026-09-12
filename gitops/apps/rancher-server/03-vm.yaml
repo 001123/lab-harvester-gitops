@@ -1,0 +1,85 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: rancher-server
+  namespace: default
+  labels:
+    harvesterhci.io/creator: admin
+    harvesterhci.io/os: linux
+  annotations:
+    harvesterhci.io/reservedMemory: 512Mi
+    harvesterhci.io/volumeClaimTemplates: |-
+      [
+        {
+          "metadata": {
+            "name": "rancher-server-disk",
+            "annotations": {
+              "harvesterhci.io/imageId": "default/opensuse-leap-micro-62"
+            }
+          },
+          "spec": {
+            "accessModes": [
+              "ReadWriteMany"
+            ],
+            "resources": {
+              "requests": {
+                "storage": "40Gi"
+              }
+            },
+            "volumeMode": "Block",
+            "storageClassName": "lh-eea5b656-bfe6-4970-87fd-c85f3ac90655"
+          }
+        }
+      ]
+spec:
+  runStrategy: RerunOnFailure
+  template:
+    metadata:
+      labels:
+        harvesterhci.io/vmName: rancher-server
+        vm.kubevirt.io/name: rancher-server
+    spec:
+      domain:
+        cpu:
+          cores: 4
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+          - bootOrder: 1
+            disk:
+              bus: virtio
+            name: rootdisk
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          inputs:
+          - bus: usb
+            name: tablet
+            type: tablet
+          interfaces:
+          - masquerade: {}
+            model: virtio
+            name: default
+        features:
+          acpi:
+            enabled: true
+        resources:
+          limits:
+            cpu: "4"
+            memory: 8Gi
+          requests:
+            cpu: "4"
+            memory: 8Gi
+      evictionStrategy: LiveMigrateIfPossible
+      networks:
+      - name: default
+        pod: {}
+      volumes:
+      - name: rootdisk
+        persistentVolumeClaim:
+          claimName: rancher-server-disk
+      - name: cloudinitdisk
+        cloudInitNoCloud:
+          secretRef:
+            name: rancher-cloudinit

@@ -1,0 +1,15 @@
+apiVersion: harvesterhci.io/v1beta1
+kind: VirtualMachineImage
+metadata:
+  name: opensuse-leap-micro-62
+  namespace: default
+  labels:
+    harvesterhci.io/image-type: qcow2
+    harvesterhci.io/imageDisplayName: opensuse-leap-micro-6.2
+    harvesterhci.io/os-type: linux
+spec:
+  displayName: opensuse-leap-micro-6.2
+  sourceType: download
+  url: "https://download.opensuse.org/distribution/leap-micro/6.2/appliances/openSUSE-Leap-Micro.x86_64-Default-qcow.qcow2"
+  targetStorageClassName: longhorn-1-replica
+  retry: 3
