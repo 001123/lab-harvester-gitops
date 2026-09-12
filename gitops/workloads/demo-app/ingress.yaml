@@ -8,6 +8,26 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    - host: demo.192.168.250.182.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-app
+                port:
+                  number: 9898
+    - host: demo.192.168.250.163.sslip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-app
+                port:
+                  number: 9898
     - host: demo.192.168.250.150.sslip.io
       http:
         paths:
