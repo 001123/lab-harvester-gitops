@@ -1,0 +1,49 @@
+# Ví dụ Dockerfile chuẩn Multi-stage build cho Next.js 16 (Standalone output)
+# Giảm dung lượng image từ >1GB xuống còn ~100MB
+
+# 1. Giai đoạn cài đặt dependencies
+FROM node:22-alpine AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* ./
+RUN \
+  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \
+  elif [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  else npm i; \
+  fi
+
+# 2. Giai đoạn build source code
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Tắt telemetry trong quá trình build
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# 3. Giai đoạn chạy production (chỉ copy file build standalone và static)
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+
+# Tự động tận dụng output traces để giảm thiểu kích thước image
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]

@@ -1,113 +1,72 @@
-# Cụm RKE2 Downstream — Quản Lý Ứng Dụng Bằng Argo CD & Traefik
+# Cụm RKE2 Downstream — Quản Lý Ứng Dụng Bằng Argo CD ApplicationSet & Traefik
 
 Thư mục này dành riêng cho **Argo CD** tự động quản lý và đồng bộ toàn bộ ứng dụng, dịch vụ nền tảng (Platform Tools) và Workloads chạy trên cụm downstream **RKE2 (v1.36.4+rke2r1)**.
 
 ---
 
-## 1. Kiến Trúc Phân Lớp (App-of-Apps Pattern)
+## 1. Kiến Trúc ApplicationSet (Zero-Touch GitOps)
+
+Hệ thống sử dụng **Argo CD ApplicationSet** với **Git Directory Generator**. Bạn **không cần tạo thủ công file Application YAML** mỗi khi có app mới; chỉ cần thêm thư mục workload vào Git là Argo CD sẽ tự động phát hiện và triển khai.
 
 ```mermaid
 graph TD
-    RootApp["root-application.yaml\n(Argo CD Root Application)"]
+    RootApp["root-application.yaml\n(Argo CD Root Application)"] --> AppSet["applicationset-workloads.yaml\n(ApplicationSet Controller)"]
     
-    subgraph "argocd-apps-rke2/"
-        RootApp --> AppDemo["demo-app.yaml\n(Application CR)"]
-        RootApp -.-> AppNew["app-moi.yaml\n(Thêm app mới tại đây)"]
+    subgraph "Git Directory Generator: argocd-apps-rke2/workloads/*"
+        AppSet -->|Tự động sinh| AppDemo["Application: demo-app"]
+        AppSet -->|Tự động sinh| AppNextJS["Application: web-nextjs"]
+        AppSet -.->|Tự động sinh khi có folder mới| AppFuture["Application: web-astro / web-vite..."]
     end
     
-    subgraph "Workloads / Namespaces"
-        AppDemo --> Podinfo["workloads/demo-app/\n(Deployment, Service, Traefik Ingress)"]
-        Podinfo --> KSOPS["KSOPS Decrypt\n(secret-demo.yaml -> Secret demo-secret)"]
+    subgraph "Kubernetes Namespaces & Pods"
+        AppDemo --> Podinfo["Namespace: demo-app\n(Podinfo Deployment, Traefik Ingress)"]
+        AppNextJS --> NextPod["Namespace: web-nextjs\n(Next.js 16 Standalone, Traefik Ingress)"]
     end
 ```
-
-- **Root Application (`root-application.yaml`)**: Đóng vai trò làm Application cấp cha, tự động theo dõi thư mục `argocd-apps-rke2/`.
-- **Mỗi ứng dụng con**: Được khai báo bằng một file `Application` (ví dụ: `demo-app.yaml`), trỏ đến thư mục chứa manifest cụ thể trong `workloads/`.
 
 ---
 
 ## 2. Ingress & Routing (Traefik v3 Mặc Định Của RKE2)
 
-Từ RKE2 **v1.36+** (sau khi Kubernetes Ingress NGINX ngừng phát triển), **Traefik** là Ingress Controller mặc định của RKE2 (`traefik.io/ingress-controller`).
-
 Traefik lắng nghe trực tiếp trên cổng `80/443` thông qua `hostPort` trên 2 Worker Nodes:
 - **Worker 1**: `192.168.250.165`
 - **Worker 2**: `192.168.250.223`
 
-### Địa chỉ truy cập các dịch vụ:
-| Dịch vụ | Tên miền sslip.io (Worker 1) | Tên miền sslip.io (Worker 2) |
-| :--- | :--- | :--- |
-| **Argo CD Web UI** | `http://argocd.192.168.250.165.sslip.io` | `http://argocd.192.168.250.223.sslip.io` |
-| **Demo App (Podinfo)** | `http://demo.192.168.250.165.sslip.io` | `http://demo.192.168.250.223.sslip.io` |
+### Danh mục địa chỉ truy cập dịch vụ:
+| Dịch vụ | Tên miền sslip.io (Worker 1) | Tên miền sslip.io (Worker 2) | Port / Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **Argo CD Web UI** | `http://argocd.192.168.250.165.sslip.io` | `http://argocd.192.168.250.223.sslip.io` | NodePort 30080 / Ingress 80 |
+| **Demo App (Podinfo)** | `http://demo.192.168.250.165.sslip.io` | `http://demo.192.168.250.223.sslip.io` | Port 9898 (2 replicas) |
+| **Next.js 16 Demo** | `http://nextjs.192.168.250.165.sslip.io` | `http://nextjs.192.168.250.223.sslip.io` | Port 3000 (2 replicas) |
 
 ---
 
-## 3. Quản Lý & Mã Hóa Secret Bằng SOPS + KSOPS
+## 3. Quy Chuẩn Triển Khai Web App (Next.js, Astro, Vite)
 
-Tất cả các Secret nhạy cảm (mật khẩu database, token, cert) được mã hóa bằng **Age key** dùng chung với repo hạ tầng và giải mã tự động bằng plugin **KSOPS** tích hợp trong Argo CD.
+### 3.1. Hướng dẫn thêm một ứng dụng mới (Zero-Touch):
+1. Tạo thư mục tại: `argocd-apps-rke2/workloads/<ten-app>/`.
+2. Tạo các manifest tiêu chuẩn bên trong:
+   - `deployment.yaml`
+   - `service.yaml`
+   - `ingress.yaml` (cấu hình host `<ten-app>.192.168.250.165.sslip.io`)
+   - `kustomization.yaml`
+3. Push lên git `main`. **ApplicationSet sẽ tự động tạo Application và triển khai ngay lập tức!**
 
-### 3.1. Mã hóa một file Secret mới:
+### 3.2. Quy chuẩn đóng gói Container theo Framework:
+
+| Framework | Kiểu ứng dụng | Container Runtime tối ưu | Port khuyến nghị |
+| :--- | :--- | :--- | :--- |
+| **Next.js 15/16** | Fullstack / SSR / App Router | Bắt buộc bật `output: 'standalone'` trong `next.config.js`. Chạy với `node:22-alpine` đa tầng. | `3000` |
+| **Astro** | Static SSG (Blog, Landing, Docs) | Build HTML tĩnh ra thư mục `dist/`, chạy bằng `nginx:alpine` unprivileged. | `80` |
+| **Vite (React/Vue)** | SPA (Single Page Application) | Build static ra `dist/`, chạy bằng `nginx:alpine` unprivileged có cấu hình `try_files $uri /index.html`. | `80` |
+
+---
+
+## 4. Quản Lý & Mã Hóa Secret Bằng SOPS + KSOPS
+
+Tất cả các Secret nhạy cảm được mã hóa bằng **Age key** dùng chung với repo hạ tầng và giải mã tự động bằng plugin **KSOPS** tích hợp trong Argo CD.
+
 ```bash
-# Tạo file secret dạng plain text
-cat <<EOF > my-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: my-secret
-  namespace: my-app
-type: Opaque
-stringData:
-  PASSWORD: "mat-khau-bi-mat"
-EOF
-
-# Mã hóa in-place bằng SOPS sử dụng cấu hình .sops.yaml ở thư mục gốc
+# Mã hóa file secret dạng in-place bằng SOPS
 sops -e -i my-secret.yaml
 ```
-
-### 3.2. Cấu hình Kustomize tích hợp KSOPS:
-Tạo file `secret-generator.yaml`:
-```yaml
-apiVersion: viaduct.ai/v1alpha1
-kind: Ksops
-metadata:
-  name: my-secret-generator
-files:
-  - ./my-secret.yaml
-```
-Khai báo vào `kustomization.yaml`:
-```yaml
-generators:
-  - secret-generator.yaml
-```
-
----
-
-## 4. Hướng Dẫn Thêm Một Ứng Dụng Mới
-
-1. Tạo thư mục manifest tại: `argocd-apps-rke2/workloads/<ten-app>/` (gồm deployment, service, ingress, kustomization...).
-2. Tạo file Application quản lý tại: `argocd-apps-rke2/<ten-app>.yaml`:
-   ```yaml
-   apiVersion: argoproj.io/v1alpha1
-   kind: Application
-   metadata:
-     name: <ten-app>
-     namespace: argocd
-     finalizers:
-       - resources-finalizer.argocd.argoproj.io
-   spec:
-     project: default
-     source:
-       repoURL: https://github.com/001123/lab-harvester-gitops.git
-       targetRevision: main
-       path: argocd-apps-rke2/workloads/<ten-app>
-     destination:
-       server: https://kubernetes.default.svc
-       namespace: <ten-app>
-     syncPolicy:
-       automated:
-         prune: true
-         selfHeal: true
-       syncOptions:
-         - CreateNamespace=true
-   ```
-3. Commit & Push lên nhánh `main`. Argo CD Root Application sẽ tự động phát hiện và đồng bộ ứng dụng mới vào cụm RKE2.
