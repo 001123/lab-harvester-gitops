@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-nextjs-demo
-  namespace: web-nextjs-demo
+  name: demo-nextjs-16
+  namespace: demo-nextjs-16
   labels:
-    app.kubernetes.io/name: web-nextjs-demo
+    app.kubernetes.io/name: demo-nextjs-16
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: web-nextjs-demo
+      app.kubernetes.io/name: demo-nextjs-16
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: web-nextjs-demo
+        app.kubernetes.io/name: demo-nextjs-16
     spec:
       containers:
-        - name: nextjs-demo
+        - name: nextjs-16
           image: node:22-alpine
           command: ["node", "/app/server.mjs"]
           ports:
@@ -65,4 +65,4 @@ spec:
       volumes:
         - name: app-code
           configMap:
-            name: web-nextjs-demo-app
+            name: demo-nextjs-16-app

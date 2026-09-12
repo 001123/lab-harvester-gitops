@@ -14,13 +14,13 @@ graph TD
     
     subgraph "Git Directory Generator: argocd-apps-rke2/workloads/*"
         AppSet -->|Tự động sinh| AppDemo["Application: demo-app"]
-        AppSet -->|Tự động sinh| AppNextJS["Application: web-nextjs-demo"]
+        AppSet -->|Tự động sinh| AppNextJS["Application: demo-nextjs-16"]
         AppSet -.->|Tự động sinh khi có folder mới| AppFuture["Application: web-astro / web-vite..."]
     end
     
     subgraph "RKE2 Namespaces & Pods"
         AppDemo --> PodDemo["Namespace: demo-app\n(Podinfo Deployment, Traefik Ingress)"]
-        AppNextJS --> NextPod["Namespace: web-nextjs-demo\n(Next.js 16 Standalone, Traefik Ingress)"]
+        AppNextJS --> NextPod["Namespace: demo-nextjs-16\n(Next.js 16 Standalone, Traefik Ingress)"]
     end
 ```
 
@@ -37,7 +37,7 @@ Traefik lắng nghe trực tiếp trên cổng `80/443` thông qua `hostPort` tr
 | :--- | :--- | :--- | :--- |
 | **Argo CD Web UI** | `http://argocd.192.168.250.165.sslip.io` | `http://argocd.192.168.250.223.sslip.io` | NodePort 30080 / Ingress 80 |
 | **Demo App (Podinfo)** | `http://demo.192.168.250.165.sslip.io` | `http://demo.192.168.250.223.sslip.io` | Port 9898 (2 replicas) |
-| **Next.js 16 Demo** | `http://nextjs-demo.192.168.250.165.sslip.io` | `http://nextjs-demo.192.168.250.223.sslip.io` | Port 3000 (2 replicas) |
+| **Next.js 16 Demo** | `http://nextjs-16.192.168.250.165.sslip.io` | `http://nextjs-16.192.168.250.223.sslip.io` | Port 3000 (2 replicas) |
 
 ---
 
