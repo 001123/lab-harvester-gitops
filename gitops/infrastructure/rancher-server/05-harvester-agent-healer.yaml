@@ -1,0 +1,196 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: harvester-agent-healer
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: harvester-agent-healer
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: harvester-agent-healer
+subjects:
+  - kind: ServiceAccount
+    name: harvester-agent-healer
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: harvester-agent-healer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harvester-agent-healer-script
+  namespace: default
+data:
+  healer.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "=== [$(date)] Harvester Agent TLS Auto-Healer Daemon Started ==="
+
+    while true; do
+      # Check if cattle-system namespace, svc/cattle-cluster-agent, and secret/tls-rancher-internal-ca exist
+      if kubectl get secret tls-rancher-internal-ca -n cattle-system >/dev/null 2>&1 && \
+         kubectl get svc cattle-cluster-agent -n cattle-system >/dev/null 2>&1; then
+
+        STATIC_VAL=$(kubectl get secret tls-rancher-internal -n cattle-system -o jsonpath='{.metadata.annotations.listener\.cattle\.io/static}' 2>/dev/null || echo "")
+
+        if [ "${STATIC_VAL}" != "true" ]; then
+          echo "⚠️ [$(date)] Detected unpatched or non-static tls-rancher-internal in cattle-system!"
+          echo "🔧 Starting automated certificate healing..."
+
+          WORK_DIR=$(mktemp -d)
+
+          # Extract CA cert and CA key
+          kubectl get secret tls-rancher-internal-ca -n cattle-system -o jsonpath='{.data.tls\.crt}' | base64 -d > "${WORK_DIR}/ca.crt"
+          kubectl get secret tls-rancher-internal-ca -n cattle-system -o jsonpath='{.data.tls\.key}' | base64 -d > "${WORK_DIR}/ca.key"
+
+          # Discover network endpoints dynamically
+          CLUSTER_IP=$(kubectl get svc cattle-cluster-agent -n cattle-system -o jsonpath='{.spec.clusterIP}')
+          VIP=$(kubectl get cm vip -n harvester-system -o jsonpath='{.data.ip}' 2>/dev/null || echo "192.168.250.20")
+          NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "192.168.250.2")
+
+          echo "📋 Identified Network SANs: Service ClusterIP=${CLUSTER_IP}, VIP=${VIP}, Node IP=${NODE_IP}"
+
+          # Reuse existing private key if present, otherwise generate a new one
+          if kubectl get secret tls-rancher-internal -n cattle-system -o jsonpath='{.data.tls\.key}' >/dev/null 2>&1; then
+            kubectl get secret tls-rancher-internal -n cattle-system -o jsonpath='{.data.tls\.key}' | base64 -d > "${WORK_DIR}/tls.key"
+          else
+            openssl genrsa -out "${WORK_DIR}/tls.key" 2048
+          fi
+
+          # Prepare OpenSSL SAN configuration
+          printf "%s\n" \
+            "[req]" \
+            "distinguished_name = req_distinguished_name" \
+            "req_extensions = v3_req" \
+            "prompt = no" \
+            "[req_distinguished_name]" \
+            "CN = cattle-cluster-agent" \
+            "[v3_req]" \
+            "basicConstraints = CA:FALSE" \
+            "keyUsage = nonRepudiation, digitalSignature, keyEncipherment" \
+            "extendedKeyUsage = serverAuth, clientAuth" \
+            "subjectAltName = @alt_names" \
+            "[alt_names]" \
+            "DNS.1 = cattle-cluster-agent" \
+            "DNS.2 = cattle-cluster-agent.cattle-system" \
+            "DNS.3 = cattle-cluster-agent.cattle-system.svc" \
+            "DNS.4 = cattle-cluster-agent.cattle-system.svc.cluster.local" \
+            "DNS.5 = localhost" \
+            "IP.1 = 127.0.0.1" \
+            "IP.2 = ${NODE_IP}" \
+            "IP.3 = ${VIP}" \
+            "IP.4 = ${CLUSTER_IP}" > "${WORK_DIR}/openssl.cnf"
+
+          # Generate CSR and sign with internal CA
+          openssl req -new -key "${WORK_DIR}/tls.key" -out "${WORK_DIR}/tls.csr" -config "${WORK_DIR}/openssl.cnf"
+          openssl x509 -req -in "${WORK_DIR}/tls.csr" -CA "${WORK_DIR}/ca.crt" -CAkey "${WORK_DIR}/ca.key" -CAcreateserial -out "${WORK_DIR}/tls.crt" -days 3650 -extensions v3_req -extfile "${WORK_DIR}/openssl.cnf"
+
+          CERT_B64=$(base64 "${WORK_DIR}/tls.crt" | tr -d '\n')
+          KEY_B64=$(base64 "${WORK_DIR}/tls.key" | tr -d '\n')
+
+          # Apply Secret with static and VIP annotations
+          printf "%s\n" \
+            "apiVersion: v1" \
+            "kind: Secret" \
+            "metadata:" \
+            "  name: tls-rancher-internal" \
+            "  namespace: cattle-system" \
+            "  annotations:" \
+            "    listener.cattle.io/static: \"true\"" \
+            "    listener.cattle.io/cn-${VIP}: \"${VIP}\"" \
+            "    listener.cattle.io/cn-127.0.0.1: \"127.0.0.1\"" \
+            "    listener.cattle.io/cn-${NODE_IP}: \"${NODE_IP}\"" \
+            "    listener.cattle.io/cn-cattle-cluster-agent: \"cattle-cluster-agent\"" \
+            "    listener.cattle.io/cn-cattle-cluster-agent.cattle-system: \"cattle-cluster-agent.cattle-system\"" \
+            "    listener.cattle.io/cn-cattle-cluster-agent.cattle-system.svc: \"cattle-cluster-agent.cattle-system.svc\"" \
+            "    listener.cattle.io/cn-cattle-cluster-agent.cattle-system.svc.cluster.local: \"cattle-cluster-agent.cattle-system.svc.cluster.local\"" \
+            "    listener.cattle.io/cn-localhost: \"localhost\"" \
+            "type: kubernetes.io/tls" \
+            "data:" \
+            "  tls.crt: ${CERT_B64}" \
+            "  tls.key: ${KEY_B64}" | kubectl apply -f -
+
+          echo "✅ Applied static tls-rancher-internal Secret with IP SANs: 127.0.0.1, ${NODE_IP}, ${VIP}, ${CLUSTER_IP}."
+
+          echo "🔄 Restarting cattle-cluster-agent and harvester apiserver..."
+          kubectl rollout restart deploy/cattle-cluster-agent -n cattle-system || true
+          kubectl rollout restart deploy/harvester -n harvester-system || true
+
+          rm -rf "${WORK_DIR}"
+          echo "🎉 [$(date)] Certificate healing completed successfully! Steve aggregation tunnel is protected."
+        fi
+      fi
+
+      sleep 15
+    done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: harvester-agent-healer
+  namespace: default
+  labels:
+    app: harvester-agent-healer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: harvester-agent-healer
+  template:
+    metadata:
+      labels:
+        app: harvester-agent-healer
+    spec:
+      serviceAccountName: harvester-agent-healer
+      containers:
+        - name: healer
+          image: rancher/rancher-agent:v2.15.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              cp /scripts/healer.sh /tmp/healer.sh
+              chmod +x /tmp/healer.sh
+              exec /tmp/healer.sh
+          volumeMounts:
+            - name: script-vol
+              mountPath: /scripts
+              readOnly: true
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: script-vol
+          configMap:
+            name: harvester-agent-healer-script
+            defaultMode: 0755

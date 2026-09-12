@@ -39,7 +39,20 @@ Sau khi máy ảo `rancher-server` khởi động xong và nhận IP (mất kho�
 ```bash
 ./bootstrap/03-register-rancher-cluster.sh
 ```
-Script sẽ lấy file kubeconfig của Rancher VM và đăng ký thành remote cluster `rancher-server` trong Argo CD Hub. Ngay sau đó, Argo CD sẽ tự động triển khai Application `rke2-cluster` để Rancher bắt đầu provisioning cụm downstream RKE2.
+Script sẽ lấy file kubeconfig của Rancher VM và đăng ký thành remote cluster `rancher-server` trong Argo CD Hub.
+
+### Bước 3b: Import Harvester & Tự Động Hóa Cấu Hình RKE2
+Chạy script tự động hóa:
+```bash
+./bootstrap/03b-import-harvester.sh
+```
+Script sẽ tự động:
+1. Đăng ký cụm `harvester-local` vào Rancher.
+2. Nạp agent đăng ký lên Harvester (được bảo vệ tức thì bởi Auto-Healer).
+3. Tạo Cloud Credential `dev`.
+4. Tự động điền các mã `harvesterClusterId` (`c-xxxxx`) và `cloudCredentialSecretName` (`cc-xxxxx`) vào `gitops/applications/02-rke2-cluster.yaml`.
+
+Sau đó chỉ cần commit & push git để Argo CD kích hoạt Rancher tạo 3 máy ảo cụm RKE2.
 
 ### Bước 4: Đăng ký Cụm Downstream RKE2
 Sau khi cụm downstream `rke2-lab` được Rancher provisioning xong (khoảng 5-10 phút):

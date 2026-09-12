@@ -99,15 +99,31 @@ Sau bước này, cluster `rancher-server` sẽ hiển thị trong mục **Setti
 
 ---
 
-### Bước 5: Đăng Ký Harvester Vào Rancher & Tạo Cloud Credential
+### Bước 5: Đăng Ký Harvester Vào Rancher & Tự Động Cấu Hình GitOps
 
+Bạn có 2 cách thực hiện:
+
+#### Cách 1: Chạy Script Tự Động Hóa 100% *(Khuyên dùng - 30 giây)*
+Chỉ cần chạy 1 lệnh duy nhất trên máy trạm:
+```bash
+./bootstrap/03b-import-harvester.sh
+```
+Script sẽ tự động:
+1. Tạo cluster `harvester-local` trên Rancher.
+2. Lấy registration token & manifest áp dụng vào Harvester.
+3. Đợi Auto-Healer cấu hình chứng chỉ TLS tĩnh an toàn.
+4. Tự động tạo Cloud Credential `dev`.
+5. Tự động cập nhật `harvesterClusterId` (`c-xxxxx`) và `cloudCredentialSecretName` (`cc-xxxxx`) vào [`gitops/applications/02-rke2-cluster.yaml`](file://gitops/applications/02-rke2-cluster.yaml).
+
+Sau đó, bạn chỉ cần nhảy ngay sang **Bước 6** để commit & push git!
+
+---
+
+#### Cách 2: Thao Tác Thủ Công Trên Web UI
 1. Đăng nhập Rancher Web UI: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443).
 2. Vào **Cluster Management** -> **Import Existing Cluster** -> Chọn **Generic**.
 3. Đặt **Cluster Name** là `harvester-local` -> Bấm **Create**.
-4. Chạy câu lệnh đăng ký (`kubectl apply -f ...`) lên cụm Harvester:
-   ```bash
-   kubectl --kubeconfig=kubeconfig.yaml apply -f <registration-url-hoặc-file>
-   ```
+4. Chạy câu lệnh đăng ký (`kubectl apply -f ...`) lên cụm Harvester.
 5. Lấy mã **Cluster ID** mới (`c-xxxxx`):
    ```bash
    kubectl --kubeconfig=gitops/infrastructure/rancher-server/rancher-k3s-kubeconfig.yaml get clusters.management.cattle.io
@@ -120,16 +136,17 @@ Sau bước này, cluster `rancher-server` sẽ hiển thị trong mục **Setti
    kubectl --kubeconfig=gitops/infrastructure/rancher-server/rancher-k3s-kubeconfig.yaml -n cattle-global-data get secrets -l cattle.io/creator=norman
    ```
 
+> [!TIP]
+> **Cơ chế Tự Động Vá Chứng Chỉ (Auto-Healer):**
+> Trong cụm Harvester đã được cấu hình sẵn Deployment [`harvester-agent-healer`](file://gitops/infrastructure/rancher-server/05-harvester-agent-healer.yaml) qua Argo CD Hub. Ngay sau khi lệnh đăng ký được chạy, Auto-Healer sẽ tự động phát hiện Secret `cattle-system/tls-rancher-internal`, ký lại chứng chỉ với đầy đủ IP SANs (Service ClusterIP, Node IP, Harvester VIP) và kích hoạt chế độ tĩnh `listener.cattle.io/static: "true"`. Điều này ngăn chặn triệt để lỗi trắng trang 503 (`Handler disconnected`) và vòng lặp xung đột dynamiclistener!
+
 ---
 
-### Bước 6: Cập Nhật Tham Số & Đẩy Git
+### Bước 6: Commit & Push Git Kích Hoạt Tạo Cụm RKE2
 
-1. Mở file [`gitops/applications/02-rke2-cluster.yaml`](file://gitops/applications/02-rke2-cluster.yaml) và điền 2 giá trị mới:
-   ```yaml
-   helm:
-     valuesObject:
-       harvesterClusterId: "c-xxxxx"                  # ID mới ở Bước 5
-       cloudCredentialSecretName: "cc-xxxxx"          # Secret mới ở Bước 5
+1. Kiểm tra thay đổi trong file [`gitops/applications/02-rke2-cluster.yaml`](file://gitops/applications/02-rke2-cluster.yaml):
+   ```bash
+   git diff gitops/applications/02-rke2-cluster.yaml
    ```
 2. Commit và push lên Git:
    ```bash
