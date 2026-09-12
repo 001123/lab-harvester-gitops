@@ -146,11 +146,9 @@ Flux Operator sẽ khởi chạy `FluxInstance`, kết nối tới repository Gi
 
 ---
 
-## 5. Sinh Cụm RKE2 Downstream Trên Harvester
+## 5. Tự Động Hóa Cụm RKE2 Downstream Qua GitOps (Không Dùng Script)
 
-Sau khi Rancher Server đã hoàn tất cài đặt và Harvester Cloud Credential được thiết lập:
-Chạy script áp dụng cấu hình RKE2:
-```bash
-./gitops/apps/rke2-cluster/apply.sh
-```
-Rancher sẽ tự động gọi Harvester Node Driver để sinh 2 máy ảo **openSUSE Leap Micro 6.2** (1 Control Plane + 1 Worker) và thiết lập cụm RKE2.
+Cụm RKE2 downstream được quản lý **100% tự động qua GitOps** bằng cơ chế **Flux Multi-Cluster Remote Sync**:
+- Flux trên Harvester sử dụng Secret `rancher-kubeconfig` trong namespace `flux-system` để đồng bộ trực tiếp tài nguyên tại `./gitops/apps/rke2-cluster` vào API của Rancher Server.
+- Rancher Server tự động kết nối với Harvester HCI và gọi Harvester Node Driver để tự động sinh 3 máy ảo **openSUSE Leap Micro 6.2** (1 Control Plane + 2 Workers).
+- Bạn không cần chạy bất kỳ lệnh `apply.sh` thủ công nào; mọi thay đổi về số lượng node, RAM, CPU hay phiên bản Kubernetes chỉ cần chỉnh sửa trong Git và `git push`.
