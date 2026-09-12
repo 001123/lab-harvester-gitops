@@ -76,22 +76,29 @@ Các biến này được định nghĩa tại [`gitops/clusters/harvester/clust
 ## 4. Thông số kỹ thuật & Cụm RKE2 hiện tại
 
 - **Tên cụm**: `rke2-lab`
-- **Cluster ID trên Rancher**: `c-m-zt75tdct`
-- **Harvester Imported Cluster ID**: `c-tphkg`
-- **Cloud Credential**: `cattle-global-data:cc-8dghb`
+- **Cluster ID trên Rancher**: Sinh tự động bởi Rancher (xem qua lệnh bên dưới)
+- **Harvester Imported Cluster ID**: `${HARVESTER_CLUSTER_ID}` (quản lý tập trung tại [`cluster-vars.yaml`](file://gitops/clusters/harvester/cluster-vars.yaml))
+- **Cloud Credential**: `${HARVESTER_CLOUD_CREDENTIAL_SECRET_NAME}` (quản lý tập trung tại [`cluster-vars.yaml`](file://gitops/clusters/harvester/cluster-vars.yaml))
 - **Kubernetes Version**: `v1.36.4+rke2r1`
 - **Hệ điều hành**: openSUSE Leap Micro 6.2 (Immutable, transactional-update, minimal footprint)
 - **CNI**: Calico
 - **Ingress Controller**: Traefik
 - **Tích hợp Harvester**: Kích hoạt sẵn `qemu-guest-agent` và cấu hình host resolution `rancher.192.168.250.2.sslip.io` trong cloud-init `userData`.
 
-### Danh sách các Node hiện tại
+### Cấu trúc Machine Pools (Quản lý tự động bởi Node Driver)
 
-| Node Name | Vai trò | Cấu hình | IP Harvester VLAN1 | Trạng thái |
-| :--- | :--- | :--- | :--- | :--- |
-| `rke2-lab-cp-46lsx-swhmq` | Control Plane, ETCD | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.116` | `Ready` |
-| `rke2-lab-wk-gwh7b-lzw5h` | Worker | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.244` | `Ready` |
-| `rke2-lab-wk-gwh7b-rn9jc` | Worker | 2 vCPU, 4GB RAM, 40GB Disk | `192.168.250.179` | `Ready` |
+Các máy ảo được Rancher và Harvester Node Driver tự động sinh mã ngẫu nhiên theo Machine Pool và cấp phát IP động qua DHCP:
+
+| Machine Pool | Vai trò | Số lượng | Quy ước đặt tên VM | Cấu hình phần cứng | Mạng |
+| :--- | :--- | :---: | :--- | :--- | :--- |
+| `cp` | Control Plane, ETCD | `1` | `rke2-lab-cp-*` | 2 vCPU, 4GB RAM, 40GB Disk | Harvester VLAN1 (DHCP) |
+| `wk` | Worker | `2` | `rke2-lab-wk-*` | 2 vCPU, 4GB RAM, 40GB Disk | Harvester VLAN1 (DHCP) |
+
+> [!TIP]
+> Tên máy ảo và địa chỉ IP thực tế được cấp phát tự động và sẽ thay đổi sau mỗi lần tái tạo môi trường. Để kiểm tra danh sách các Node thực tế đang chạy:
+> ```bash
+> kubectl --kubeconfig=gitops/apps/rke2-cluster/rke2-kubeconfig.yaml --insecure-skip-tls-verify get nodes -o wide
+> ```
 
 ---
 
