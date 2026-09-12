@@ -68,7 +68,7 @@ type: Opaque
 data:
   url: "aHR0cHM6Ly9yYW5jaGVyLjE5Mi4xNjguMjUwLjIuc3NsaXAuaW86MzE0NDM="
   token: "bW04Zmw5c2J0bHQ2aGZ3cGo2ZnFndnpyYnF3eGZmbno3a3FzZ3c0amNrZ3hmc2tmenR0Mm03"
-  namespace: ""
+  namespace: "Yy1nc3J4bQ=="
 
 ---
 
@@ -185,6 +185,8 @@ spec:
             value: sslip.io
           - name: STRICT_VERIFY
             value: "true"
+          - name: CATTLE_FEATURES
+            value: fleet=false,managed-system-upgrade-controller=true,multi-cluster-management=false,multi-cluster-management-agent=true,provisioningprebootstrap=false,provisioningv2=false,rke2=false,turtles=false,ui-sql-cache=true
           image: "rancher/rancher-agent:v2.15.1"
           volumeMounts:
           - name: cattle-credentials
