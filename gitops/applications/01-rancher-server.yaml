@@ -11,8 +11,6 @@ spec:
     repoURL: https://github.com/001123/lab-harvester-gitops.git
     targetRevision: main
     path: gitops/infrastructure/rancher-server
-    plugin:
-      name: ksops
   destination:
     server: https://kubernetes.default.svc
     namespace: default

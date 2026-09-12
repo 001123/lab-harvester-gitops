@@ -23,60 +23,32 @@ configs:
       hs = {}
       hs.status = "Healthy"
       return hs
-  cmp:
-    create: true
-    plugins:
-      ksops:
-        init:
-          command: ["sh", "-c"]
-          args:
-            - |
-              for f in $(grep -rl "ENC\[AES256_GCM" . 2>/dev/null || true); do
-                if [ -f "$f" ]; then
-                  echo "Decrypting SOPS secret: $f"
-                  sops --decrypt --in-place "$f" || true
-                fi
-              done
-        generate:
-          command: ["sh", "-c"]
-          args:
-            - |
-              if [ -f kustomization.yaml ] || [ -f kustomization.yml ] || [ -f Kustomization ]; then
-                kustomize build --enable-alpha-plugins --enable-exec .
-              else
-                cat *.yaml 2>/dev/null || true
-              fi
 
 repoServer:
-  extraContainers:
-    - name: cmp-ksops
-      command:
-        - "/var/run/argocd/argocd-cmp-server"
-      image: viashue/ksops:v4.3.3
-      env:
-        - name: SOPS_AGE_KEY_FILE
-          value: /home/argocd/.config/sops/age/keys.txt
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 999
+  initContainers:
+    - name: install-ksops
+      image: viaductoss/ksops:v4.5.1
+      command: ["/usr/local/bin/ksops", "install", "--with-kustomize", "/custom-tools"]
       volumeMounts:
-        - mountPath: /var/run/argocd
-          name: var-files
-        - mountPath: /home/argocd/cmp-server/plugins
-          name: plugins
-        - mountPath: /tmp
-          name: cmp-tmp
-        - mountPath: /home/argocd/cmp-server/config/plugin.yaml
-          subPath: ksops.yaml
-          name: argocd-cmp-cm
-        - mountPath: /home/argocd/.config/sops/age
-          name: sops-age
+        - mountPath: /custom-tools
+          name: custom-tools
   volumes:
-    - name: cmp-tmp
+    - name: custom-tools
       emptyDir: {}
-    - name: argocd-cmp-cm
-      configMap:
-        name: argocd-cmp-cm
     - name: sops-age
       secret:
         secretName: sops-age
+  volumeMounts:
+    - mountPath: /usr/local/bin/kustomize
+      name: custom-tools
+      subPath: kustomize
+    - mountPath: /usr/local/bin/ksops
+      name: custom-tools
+      subPath: ksops
+    - mountPath: /home/argocd/.config/sops/age
+      name: sops-age
+  env:
+    - name: XDG_CONFIG_HOME
+      value: /home/argocd/.config
+    - name: SOPS_AGE_KEY_FILE
+      value: /home/argocd/.config/sops/age/keys.txt
