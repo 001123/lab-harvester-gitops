@@ -5,19 +5,103 @@ metadata:
     namespace: default
 type: Opaque
 stringData:
-    userdata: ENC[AES256_GCM,data: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,iv:8s71ejb9WCtJUHroL3M6Hvlx2UHsNw9cE88SOeVEx0E=,tag:4DVgs9CvGgdt55HIrgXh7Q==,type:str]
-sops:
-    age:
-        - enc: |
-            -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBybnBXcWlGdHFvL1BMVjZP
-            T3ZXNWFKbWl6R2NmRTY1ZnlhbGorT0huOFh3CjV0Q1JGN2cxZjhrY0dzNlhROTRG
-            bE4xZHdDVGU5V0RSbVpLN0NLL2FtNWsKLS0tIG16Q3pwU0M5RUZFSnhEbWxZTFUx
-            eGlpNk9pV0lTUW9pajVCUWg5NWhVRU0KDr7HDBgZFKKbMavu/4PgwWQW+9InR3HV
-            2LM3SIxhSvv4mNT4Xj6OaBYnqkOuNpHp2QYcymgtTXPwVrW68v6jyw==
-            -----END AGE ENCRYPTED FILE-----
-          recipient: age13hphavvlee240rq0j42j60mqxj8s4k9tp473g076xl5z35p8mgjqx29stw
-    encrypted_regex: ^(data|stringData)$
-    lastmodified: "2026-09-12T07:57:40Z"
-    mac: ENC[AES256_GCM,data:dGIkY0nDNjUQWKB8yQe8CE7cRRIDpqF3Xq2dO/3HHwO/zCvMxP9TB9W0wBBCoE4xOlBek+yLLRidT9ACdbW+nj9cDunR5K/NwuFPAttgh2DemW5vysC2yIn4pgaRVoJH+2AABObumQTiGxvFGhOpx9jAcFD3zSyx4O/V0C5Ywrk=,iv:UVtm/Z65F8k3GqEpqQUFTbjAAx297km4LFkL+LA7WpM=,tag:sIrhc9dnZLVRwmlAmwo8yw==,type:str]
-    version: 3.13.3
+    userdata: |
+        #cloud-config
+        users:
+          - default
+          - name: opensuse
+            groups: [wheel, sudo, users]
+            sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+            shell: /bin/bash
+            lock_passwd: false
+            ssh_authorized_keys:
+              - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPaWkIWwJqchLwmCMSN3hmUDVg08y3SU5L544sJSFpbW timi@Timi-Macbook-Pro-16-M4-Pro.local
+        chpasswd:
+          list: |
+            opensuse:rancher@2026!
+            root:rancher@2026!
+          expire: False
+        ssh_pwauth: true
+        write_files:
+          - path: /opt/bootstrap-rancher.sh
+            permissions: '0755'
+            content: |
+              #!/usr/bin/env bash
+              set -eo pipefail
+              LOGFILE="/var/log/rancher-bootstrap.log"
+              exec > >(tee -a "$LOGFILE") 2>&1
+
+              export HOME=/root
+              cd /root
+
+              echo "=== [$(date)] BẮT ĐẦU BOOTSTRAP RANCHER MANAGEMENT CLUSTER TRÊN OPENSUSE LEAP MICRO 6.2 ==="
+
+              echo "=== 1. Cấu hình môi trường openSUSE ==="
+              setenforce 0 || true
+              if [[ -f /etc/selinux/config ]]; then
+                sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config || true
+              fi
+
+              mkdir -p /usr/local/bin
+              export PATH="/usr/local/bin:$PATH"
+
+              echo "=== 2. Kích hoạt qemu-guest-agent & Host mapping ==="
+              systemctl enable --now qemu-guest-agent || true
+              echo "192.168.250.2 rancher.192.168.250.2.sslip.io" >> /etc/hosts || true
+
+              echo "=== 3. Kiểm tra kết nối Internet ==="
+              until curl -s --connect-timeout 5 https://github.com >/dev/null || curl -s --connect-timeout 5 https://google.com >/dev/null; do
+                echo "Đang chờ kết nối mạng..."
+                sleep 3
+              done
+
+              echo "=== 4. Cài đặt K3s Server ==="
+              curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.36.4+k3s1" INSTALL_K3S_BIN_DIR="/usr/local/bin" INSTALL_K3S_EXEC="server --tls-san rancher.192.168.250.2.sslip.io --tls-san 192.168.250.2 --tls-san 192.168.250.20 --write-kubeconfig-mode 644" sh -
+              systemctl start k3s || true
+
+              export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+              echo "=== 5. Chờ K3s node Ready ==="
+              until kubectl get nodes 2>/dev/null | grep -q ' Ready'; do
+                echo "Đang chờ K3s node sẵn sàng..."
+                sleep 3
+              done
+
+              echo "=== 6. Cài đặt Helm v3 ==="
+              if ! command -v helm &>/dev/null; then
+                curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | USE_SUDO=false BINARY_DIR="/usr/local/bin" bash
+              fi
+
+              echo "=== 7. Cài đặt Jetstack Cert-Manager ==="
+              helm repo add jetstack https://charts.jetstack.io || true
+              helm repo add rancher-stable https://releases.rancher.com/server-charts/stable || true
+              helm repo update
+
+              kubectl create namespace cert-manager || true
+              helm upgrade --install cert-manager jetstack/cert-manager \
+                --namespace cert-manager \
+                --set crds.enabled=true \
+                --wait \
+                --timeout 5m
+
+              echo "=== 8. Cài đặt Rancher Manager (v2.10+) ==="
+              kubectl create namespace cattle-system || true
+              helm upgrade --install rancher rancher-stable/rancher \
+                --namespace cattle-system \
+                --set hostname=rancher.192.168.250.2.sslip.io \
+                --set bootstrapPassword=admin@2026!! \
+                --set replicas=1 \
+                --set global.cattle.psp.enabled=false \
+                --wait \
+                --timeout 15m
+
+              echo "=== 9. Cấu hình server-url cho Rancher ==="
+              until kubectl get setting.management.cattle.io/server-url >/dev/null 2>&1; do
+                echo "Đang chờ Rancher Settings CRD..."
+                sleep 5
+              done
+              kubectl patch setting server-url --type=merge -p '{"value":"https://rancher.192.168.250.2.sslip.io:31443"}' || true
+
+              echo "=== [$(date)] HOÀN TẤT TRIỂN KHAI RANCHER THÀNH CÔNG ==="
+        runcmd:
+          - /bin/bash /opt/bootstrap-rancher.sh
