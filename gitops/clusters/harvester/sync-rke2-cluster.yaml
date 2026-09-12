@@ -16,3 +16,11 @@ spec:
   timeout: 10m
   dependsOn:
     - name: rancher-server
+  postBuild:
+    substitute:
+      HARVESTER_CLUSTER_ID: "c-tphkg"
+      HARVESTER_CC_NAME: "cc-8dghb"
+    substituteFrom:
+      - kind: ConfigMap
+        name: cluster-vars
+        optional: true

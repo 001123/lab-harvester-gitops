@@ -4,7 +4,7 @@ metadata:
   name: rke2-lab
   namespace: fleet-default
 spec:
-  cloudCredentialSecretName: cattle-global-data:cc-8dghb
+  cloudCredentialSecretName: cattle-global-data:${HARVESTER_CC_NAME}
   kubernetesVersion: v1.36.4+rke2r1
   rkeConfig:
     machinePools:

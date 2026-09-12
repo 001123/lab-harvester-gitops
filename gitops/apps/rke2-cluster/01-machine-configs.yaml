@@ -3,7 +3,7 @@ kind: HarvesterConfig
 metadata:
   name: rke2-cp-config
   namespace: fleet-default
-clusterId: c-tphkg
+clusterId: ${HARVESTER_CLUSTER_ID}
 clusterType: imported
 vmNamespace: default
 cpuCount: "2"
@@ -20,7 +20,7 @@ kind: HarvesterConfig
 metadata:
   name: rke2-wk-config
   namespace: fleet-default
-clusterId: c-tphkg
+clusterId: ${HARVESTER_CLUSTER_ID}
 clusterType: imported
 vmNamespace: default
 cpuCount: "2"
