@@ -96,21 +96,6 @@ spec:
             - start
             - --config
             - /etc/config/config.json
-          ports:
-            - containerPort: 8080
-              name: health
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: health
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: health
-            initialDelaySeconds: 5
-            periodSeconds: 5
           volumeMounts:
             - name: config-volume
               mountPath: /etc/config/
@@ -121,8 +106,6 @@ spec:
                   fieldPath: metadata.namespace
             - name: CONFIG_MOUNT_PATH
               value: /etc/config/
-            - name: HEALTH_PORT
-              value: "8080"
       volumes:
         - name: config-volume
           configMap:
