@@ -7,3 +7,15 @@ spec:
   redirectScheme:
     scheme: https
     permanent: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: netdata-redirect-v3
+  namespace: kube-system
+spec:
+  redirectRegex:
+    regex: "^https?://[^/]+/?$"
+    replacement: "/v3/"
+    permanent: false
+

@@ -61,7 +61,7 @@ spec:
             kubernetes.io/ingress.class: traefik
             cert-manager.io/cluster-issuer: homelab-ca-issuer
             traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-            traefik.ingress.kubernetes.io/router.middlewares: kube-system-redirect-https@kubernetescrd
+            traefik.ingress.kubernetes.io/router.middlewares: kube-system-redirect-https@kubernetescrd,kube-system-netdata-redirect-v3@kubernetescrd
           hosts:
             - netdata.192.168.250.99.sslip.io
           spec:
