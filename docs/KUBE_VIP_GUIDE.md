@@ -58,7 +58,7 @@ graph TD
     Traefik1 -->|4. Định tuyến theo Host Header| Workloads1 & Workloads2
 
     %% Heartbeat & Lease
-    KubeVip1 -->|Giữ Lease Heartbeat (renew 3s)| LeaseLock
+    KubeVip1 -->|"Giữ Lease Heartbeat (renew 3s)"| LeaseLock
     KubeVip2 -.->|Theo dõi Lease để sẵn sàng Failover| LeaseLock
 ```
 
