@@ -296,7 +296,7 @@ data:
         <nav class="footer-links">
           <a href="/api/health" target="_blank">🔗 API Health Check</a>
           <a href="/api/info" target="_blank">📋 JSON System Info</a>
-          <a href="http://argocd.192.168.250.165.sslip.io" target="_blank">🐙 Argo CD Console</a>
+          <a href="http://192.168.250.2:30080" target="_blank">🐙 Argo CD Console</a>
         </nav>
       </div>
     </body>

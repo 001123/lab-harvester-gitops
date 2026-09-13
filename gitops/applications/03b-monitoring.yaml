@@ -28,8 +28,7 @@ spec:
             enabled: true
             ingressClassName: traefik
             hosts:
-              - grafana.192.168.250.163.sslip.io
-              - grafana.192.168.250.182.sslip.io
+              - grafana.192.168.250.50.sslip.io
         prometheus:
           prometheusSpec:
             retention: 7d

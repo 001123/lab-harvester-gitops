@@ -9,17 +9,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   rules:
-    - host: nextjs.192.168.250.182.sslip.io
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: demo-nextjs-16
-                port:
-                  number: 80
-    - host: nextjs.192.168.250.163.sslip.io
+    - host: nextjs.192.168.250.50.sslip.io
       http:
         paths:
           - path: /
