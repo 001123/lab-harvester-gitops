@@ -171,5 +171,7 @@ Hệ thống được tích hợp sẵn cơ chế **Tự Phục Hồi Đa Tầng
 👉 Hướng dẫn bảo mật & mã hóa bí mật GitOps với SOPS + Age: [`docs/SOPS_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/SOPS_GUIDE.md).
 👉 Hướng dẫn kiến trúc & vận hành mạng ảo Kube-VIP (ARP Leader Election): [`docs/KUBE_VIP_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/KUBE_VIP_GUIDE.md).
 👉 Hướng dẫn kiến trúc Root CA & ClusterIssuer tự động hóa HTTPS: [`docs/CERT_MANAGER_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/CERT_MANAGER_GUIDE.md).
+👉 Hướng dẫn giám sát thời gian thực Netdata (Parent-Child & Bypass Cloud): [`docs/NETDATA_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/NETDATA_GUIDE.md).
+
 
 
