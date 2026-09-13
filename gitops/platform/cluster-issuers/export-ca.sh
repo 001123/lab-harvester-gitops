@@ -8,7 +8,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-KUBECONFIG_PATH="${KUBECONFIG:-${REPO_ROOT}/gitops/infrastructure/rke2-cluster/rke2-kubeconfig.yaml}"
+DEFAULT_KUBECONFIG="${REPO_ROOT}/gitops/infrastructure/rke2-cluster/rke2-kubeconfig.yaml"
+if [[ -f "${DEFAULT_KUBECONFIG}" ]]; then
+  KUBECONFIG_PATH="${DEFAULT_KUBECONFIG}"
+else
+  KUBECONFIG_PATH="${KUBECONFIG:-~/.kube/config}"
+fi
 OUTPUT_CERT="${REPO_ROOT}/homelab-root-ca.crt"
 
 echo "==> 1. Kiểm tra kubeconfig RKE2..."

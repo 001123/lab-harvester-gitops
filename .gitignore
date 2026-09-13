@@ -14,5 +14,6 @@ INFO.md
 # Temporary files & logs
 *.log
 *.tmp
+*.crt
 tmp/
 scratch/
