@@ -161,4 +161,6 @@ Hệ thống được tích hợp sẵn cơ chế **Tự Phục Hồi Đa Tầng
 
 👉 Xem chi tiết cấu trúc kiến trúc và hướng dẫn vận hành tại: [`docs/AUTO_RECOVERY_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/AUTO_RECOVERY_GUIDE.md).
 👉 Hướng dẫn bảo mật & mã hóa bí mật GitOps với SOPS + Age: [`docs/SOPS_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/SOPS_GUIDE.md).
+👉 Hướng dẫn kiến trúc & vận hành mạng ảo Kube-VIP (ARP Leader Election): [`docs/KUBE_VIP_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/KUBE_VIP_GUIDE.md).
+
 
