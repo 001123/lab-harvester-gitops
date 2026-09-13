@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: homelab-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: "Harvester HomeLab i5"
+  secretName: homelab-root-ca-secret
+  duration: 87600h # 10 năm
+  renewBefore: 720h # 30 ngày
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-bootstrap-issuer
+    kind: Issuer
+    group: cert-manager.io

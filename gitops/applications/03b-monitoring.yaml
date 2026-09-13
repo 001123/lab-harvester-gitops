@@ -6,7 +6,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   project: default
   source:
@@ -27,8 +27,16 @@ spec:
           ingress:
             enabled: true
             ingressClassName: traefik
+            annotations:
+              cert-manager.io/cluster-issuer: homelab-ca-issuer
+              traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+              traefik.ingress.kubernetes.io/router.middlewares: kube-system-redirect-https@kubernetescrd
             hosts:
               - grafana.192.168.250.99.sslip.io
+            tls:
+              - hosts:
+                  - grafana.192.168.250.99.sslip.io
+                secretName: grafana-tls-cert
         prometheus:
           prometheusSpec:
             retention: 7d

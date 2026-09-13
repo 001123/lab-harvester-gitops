@@ -6,8 +6,15 @@ metadata:
   labels:
     app.kubernetes.io/name: demo-nextjs-16
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-redirect-https@kubernetescrd
 spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - nextjs.192.168.250.99.sslip.io
+      secretName: demo-nextjs-16-tls
   rules:
     - host: nextjs.192.168.250.99.sslip.io
       http:

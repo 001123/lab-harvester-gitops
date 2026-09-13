@@ -65,6 +65,8 @@ graph TD
 ├── FRESH_INSTALL_GUIDE.md              # Hướng dẫn chi tiết cài đặt mới & khôi phục
 ├── docs/
 │   ├── AUTO_RECOVERY_GUIDE.md          # Cơ chế tự phục hồi (Self-Healing) sau reboot/cúp điện
+│   ├── CERT_MANAGER_GUIDE.md           # Hướng dẫn kiến trúc Root CA nội bộ & ClusterIssuer TLS
+│   ├── KUBE_VIP_GUIDE.md               # Hướng dẫn kiến trúc mạng ảo Kube-VIP (Layer 2 ARP)
 │   └── SOPS_GUIDE.md                   # Hướng dẫn toàn diện về mã hóa SOPS, Age Key & KSOPS
 ├── bootstrap/                          # QUY TRÌNH BOOTSTRAP ARGO CD HUB
 │   ├── 01-setup-sops-age.sh            # Tạo namespace argocd & Secret sops-age
@@ -78,13 +80,19 @@ graph TD
     ├── applications/                   # Danh mục Application con do Root App quản lý
     │   ├── 01-rancher-server.yaml      # Quản lý máy ảo Rancher Server trên Harvester
     │   ├── 02-rke2-cluster.yaml        # Quản lý cụm CAPI RKE2 trên Rancher Server
-    │   ├── 03-platform.yaml            # Quản lý cert-manager trên cụm RKE2
+    │   ├── 02b-local-path-provisioner.yaml # Quản lý storage cục bộ RKE2
+    │   ├── 02c-kube-vip.yaml           # Quản lý Kube-VIP daemonset
+    │   ├── 03-platform.yaml            # Quản lý cert-manager Helm chart
+    │   ├── 03a-cluster-issuers.yaml    # Quản lý Root CA & ClusterIssuer
+    │   ├── 03b-monitoring.yaml         # Quản lý Prometheus & Grafana
     │   └── 04-workloads.yaml           # ApplicationSet tự động quét & triển khai app
     ├── infrastructure/                 # Manifest hạ tầng
     │   ├── rancher-server/             # KubeVirt VM, Cloud-Init (SOPS), Services Rancher
     │   └── rke2-cluster/               # Helm Chart CAPI (HarvesterConfig, Cluster CR)
-    ├── platform/                       # Công cụ nền tảng cho downstream (cert-manager...)
-    │   └── cert-manager.yaml
+    ├── platform/                       # Công cụ nền tảng cho downstream
+    │   ├── cluster-issuers/            # Root CA 10 năm, ClusterIssuer, Traefik HTTPS redirect
+    │   ├── kube-vip/                   # Manifests Kube-VIP DaemonSet, RBAC, PodMonitor
+    │   └── local-path-provisioner/     # Local Path Provisioner StorageClass
     └── workloads/                      # Danh mục các app nghiệp vụ (Zero-Touch GitOps)
         ├── demo-app/                   # Podinfo sample app
         └── demo-nextjs-16/             # Next.js 16 standalone demo app
@@ -162,5 +170,6 @@ Hệ thống được tích hợp sẵn cơ chế **Tự Phục Hồi Đa Tầng
 👉 Xem chi tiết cấu trúc kiến trúc và hướng dẫn vận hành tại: [`docs/AUTO_RECOVERY_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/AUTO_RECOVERY_GUIDE.md).
 👉 Hướng dẫn bảo mật & mã hóa bí mật GitOps với SOPS + Age: [`docs/SOPS_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/SOPS_GUIDE.md).
 👉 Hướng dẫn kiến trúc & vận hành mạng ảo Kube-VIP (ARP Leader Election): [`docs/KUBE_VIP_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/KUBE_VIP_GUIDE.md).
+👉 Hướng dẫn kiến trúc Root CA & ClusterIssuer tự động hóa HTTPS: [`docs/CERT_MANAGER_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/CERT_MANAGER_GUIDE.md).
 
 

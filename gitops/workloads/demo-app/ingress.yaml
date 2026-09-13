@@ -5,8 +5,16 @@ metadata:
   namespace: demo-app
   labels:
     app: demo-app
+  annotations:
+    cert-manager.io/cluster-issuer: homelab-ca-issuer
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.middlewares: kube-system-redirect-https@kubernetescrd
 spec:
   ingressClassName: traefik
+  tls:
+    - hosts:
+        - demo.192.168.250.99.sslip.io
+      secretName: demo-app-tls
   rules:
     - host: demo.192.168.250.99.sslip.io
       http:

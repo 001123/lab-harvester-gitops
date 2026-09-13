@@ -1,23 +1,18 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: cert-manager
+  name: cluster-issuers
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   project: default
   source:
-    repoURL: https://charts.jetstack.io
-    chart: cert-manager
-    targetRevision: v1.17.1
-    helm:
-      releaseName: cert-manager
-      valuesObject:
-        crds:
-          enabled: true
+    repoURL: https://github.com/001123/lab-harvester-gitops.git
+    targetRevision: main
+    path: gitops/platform/cluster-issuers
   destination:
     name: rke2-cluster
     namespace: cert-manager
