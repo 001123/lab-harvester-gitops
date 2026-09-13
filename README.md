@@ -63,6 +63,8 @@ graph TD
 ├── INFO.example.md                     # File mẫu thông tin kết nối Harvester
 ├── README.md                           # Tài liệu tổng quan kiến trúc GitOps
 ├── FRESH_INSTALL_GUIDE.md              # Hướng dẫn chi tiết cài đặt mới & khôi phục
+├── docs/
+│   └── AUTO_RECOVERY_GUIDE.md          # Cơ chế tự phục hồi (Self-Healing) sau reboot/cúp điện
 ├── bootstrap/                          # QUY TRÌNH BOOTSTRAP ARGO CD HUB
 │   ├── 01-setup-sops-age.sh            # Tạo namespace argocd & Secret sops-age
 │   ├── 02-install-argocd.sh            # Cài đặt Argo CD Hub Helm + KSOPS CMP & Root App
@@ -142,3 +144,19 @@ Toàn bộ `platform` và `workloads` sẽ tự động được Argo CD đồng
   ```bash
   kubectl --kubeconfig=gitops/infrastructure/rke2-cluster/rke2-kubeconfig.yaml get nodes -o wide
   ```
+
+---
+
+## 5. Cơ Chế Tự Phục Hồi & Tự Động Hóa Vận Hành (Self-Healing)
+
+Hệ thống được tích hợp sẵn cơ chế **Tự Phục Hồi Đa Tầng (Self-Healing)** để đảm bảo khi máy chủ vật lý bị khởi động lại hoặc mất điện đột ngột:
+- **Tự khắc phục lỗi 502 Harvester**: Daemon `harvester-agent-healer` liên tục quét và tự động chuyển các CRD `cluster.x-k8s.io` về `strategy: None`.
+- **Tự bật lại toàn bộ máy ảo (`runStrategy: Always`)**: KubeVirt tự động spawn lại `rancher-server` và các node RKE2 ngay khi node khởi động xong.
+- **Tự kết nối lại cluster agent**: Kênh kết nối giữa Harvester và Rancher Server tự động phục hồi trong vòng 3-5 phút sau khi cắm điện lại.
+- **Tắt máy an toàn (Graceful Shutdown)**:
+  ```bash
+  ssh rancher@192.168.250.2 "sudo poweroff"
+  ```
+
+👉 Xem chi tiết cấu trúc kiến trúc và hướng dẫn vận hành tại: [`docs/AUTO_RECOVERY_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/AUTO_RECOVERY_GUIDE.md).
+

@@ -32,7 +32,7 @@ metadata:
         }
       ]
 spec:
-  runStrategy: RerunOnFailure
+  runStrategy: Always
   template:
     metadata:
       labels:

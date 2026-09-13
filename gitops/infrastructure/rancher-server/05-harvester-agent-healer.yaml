@@ -25,6 +25,12 @@ rules:
   - apiGroups: ["apps"]
     resources: ["deployments"]
     verbs: ["get", "patch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["kubevirt.io"]
+    resources: ["virtualmachines"]
+    verbs: ["get", "list", "watch", "patch", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -49,10 +55,24 @@ data:
     #!/usr/bin/env bash
     set -euo pipefail
 
-    echo "=== [$(date)] Harvester Agent TLS Auto-Healer Daemon Started ==="
+    echo "=== [$(date)] Harvester Cluster & Agent Auto-Healer Daemon Started ==="
 
     while true; do
-      # Check if cattle-system namespace, svc/cattle-cluster-agent, and secret/tls-rancher-internal-ca exist
+      # 1. Self-heal CAPI CRDs with broken conversion webhooks (prevents Harvester 502 Bad Gateway)
+      for crd in $(kubectl get crd -o jsonpath='{range .items[?(@.spec.conversion.strategy=="Webhook")]}{.metadata.name}{" "}{end}' 2>/dev/null || true); do
+        if [[ "$crd" == *"cluster.x-k8s.io"* ]]; then
+          echo "⚠️ [$(date)] Detected broken conversion Webhook on CRD $crd. Auto-healing to strategy None..."
+          kubectl patch crd "$crd" --type=merge -p '{"spec":{"conversion":{"strategy":"None","webhook":null}}}' || true
+        fi
+      done
+
+      # 2. Self-heal VirtualMachine runStrategy to Always so all infra VMs automatically restart on host reboot
+      for vm in $(kubectl get vm -n default -o jsonpath='{range .items[?(@.spec.runStrategy!="Always")]}{.metadata.name}{" "}{end}' 2>/dev/null || true); do
+        echo "🔧 [$(date)] Updating VM default/$vm runStrategy to Always for automatic crash recovery..."
+        kubectl patch vm "$vm" -n default --type=merge -p '{"spec":{"runStrategy":"Always"}}' || true
+      done
+
+      # 3. Check if cattle-system namespace, svc/cattle-cluster-agent, and secret/tls-rancher-internal-ca exist
       if kubectl get secret tls-rancher-internal-ca -n cattle-system >/dev/null 2>&1 && \
          kubectl get svc cattle-cluster-agent -n cattle-system >/dev/null 2>&1; then
 
