@@ -59,8 +59,9 @@ data:
 
     while true; do
       # 1. Self-heal CAPI CRDs with broken conversion webhooks (prevents Harvester 502 Bad Gateway)
-      for crd in $(kubectl get crd -o jsonpath='{range .items[?(@.spec.conversion.strategy=="Webhook")]}{.metadata.name}{" "}{end}' 2>/dev/null || true); do
-        if [[ "$crd" == *"cluster.x-k8s.io"* ]]; then
+      for crd in clusterclasses.cluster.x-k8s.io clusterresourcesetbindings.addons.cluster.x-k8s.io clusterresourcesets.addons.cluster.x-k8s.io clusters.cluster.x-k8s.io extensionconfigs.runtime.cluster.x-k8s.io ipaddressclaims.ipam.cluster.x-k8s.io ipaddresses.ipam.cluster.x-k8s.io machinedeployments.cluster.x-k8s.io machinedrainrules.cluster.x-k8s.io machinehealthchecks.cluster.x-k8s.io machinepools.cluster.x-k8s.io machines.cluster.x-k8s.io machinesets.cluster.x-k8s.io; do
+        STRAT=$(kubectl get crd "$crd" -o jsonpath='{.spec.conversion.strategy}' 2>/dev/null || true)
+        if [ "$STRAT" = "Webhook" ]; then
           echo "⚠️ [$(date)] Detected broken conversion Webhook on CRD $crd. Auto-healing to strategy None..."
           kubectl patch crd "$crd" --type=merge -p '{"spec":{"conversion":{"strategy":"None","webhook":null}}}' || true
         fi
@@ -205,10 +206,10 @@ spec:
           resources:
             requests:
               cpu: 10m
-              memory: 32Mi
+              memory: 64Mi
             limits:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 200m
+              memory: 512Mi
       volumes:
         - name: script-vol
           configMap:
