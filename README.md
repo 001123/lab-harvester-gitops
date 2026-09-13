@@ -64,7 +64,8 @@ graph TD
 ├── README.md                           # Tài liệu tổng quan kiến trúc GitOps
 ├── FRESH_INSTALL_GUIDE.md              # Hướng dẫn chi tiết cài đặt mới & khôi phục
 ├── docs/
-│   └── AUTO_RECOVERY_GUIDE.md          # Cơ chế tự phục hồi (Self-Healing) sau reboot/cúp điện
+│   ├── AUTO_RECOVERY_GUIDE.md          # Cơ chế tự phục hồi (Self-Healing) sau reboot/cúp điện
+│   └── SOPS_GUIDE.md                   # Hướng dẫn toàn diện về mã hóa SOPS, Age Key & KSOPS
 ├── bootstrap/                          # QUY TRÌNH BOOTSTRAP ARGO CD HUB
 │   ├── 01-setup-sops-age.sh            # Tạo namespace argocd & Secret sops-age
 │   ├── 02-install-argocd.sh            # Cài đặt Argo CD Hub Helm + KSOPS CMP & Root App
@@ -159,4 +160,5 @@ Hệ thống được tích hợp sẵn cơ chế **Tự Phục Hồi Đa Tầng
   ```
 
 👉 Xem chi tiết cấu trúc kiến trúc và hướng dẫn vận hành tại: [`docs/AUTO_RECOVERY_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/AUTO_RECOVERY_GUIDE.md).
+👉 Hướng dẫn bảo mật & mã hóa bí mật GitOps với SOPS + Age: [`docs/SOPS_GUIDE.md`](file:///Users/timi/lab/lab-harvester/docs/SOPS_GUIDE.md).
 
