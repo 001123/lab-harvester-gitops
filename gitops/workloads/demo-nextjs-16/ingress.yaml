@@ -9,7 +9,7 @@ metadata:
     traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
   rules:
-    - host: nextjs.192.168.250.50.sslip.io
+    - host: nextjs.192.168.250.99.sslip.io
       http:
         paths:
           - path: /
