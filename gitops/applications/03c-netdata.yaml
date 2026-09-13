@@ -1,0 +1,82 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netdata
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: default
+  source:
+    repoURL: https://netdata.github.io/helmchart
+    chart: netdata
+    targetRevision: 3.7.173
+    helm:
+      releaseName: netdata
+      valuesObject:
+        parent:
+          enabled: true
+          database:
+            persistence: true
+            storageclass: local-path
+            volumesize: 5Gi
+          alarms:
+            persistence: true
+            storageclass: local-path
+            volumesize: 1Gi
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+        child:
+          enabled: true
+          resources:
+            limits:
+              cpu: 250m
+              memory: 384Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+        k8sState:
+          enabled: true
+          persistence:
+            enabled: true
+            storageclass: local-path
+            volumesize: 1Gi
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 128Mi
+        ingress:
+          enabled: true
+          annotations:
+            kubernetes.io/ingress.class: traefik
+            cert-manager.io/cluster-issuer: homelab-ca-issuer
+            traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+            traefik.ingress.kubernetes.io/router.middlewares: kube-system-redirect-https@kubernetescrd
+          hosts:
+            - netdata.192.168.250.99.sslip.io
+          spec:
+            ingressClassName: traefik
+            tls:
+              - hosts:
+                  - netdata.192.168.250.99.sslip.io
+                secretName: netdata-tls-cert
+  destination:
+    name: rke2-cluster
+    namespace: netdata
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
