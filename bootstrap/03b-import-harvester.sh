@@ -80,7 +80,17 @@ MANIFEST_URL="${RAW_URL/\{token\}/${REG_TOKEN}}"
 echo "📥 3. Áp dụng registration manifest vào cụm Harvester..."
 curl -k -sSL "${MANIFEST_URL}" | kubectl --kubeconfig="${HARVESTER_KUBECONFIG}" apply -f -
 
-# 3. Chờ Auto-Healer vá TLS Secret
+# 3b. Kiểm tra & chuẩn hóa CAPI CRDs (chặn lỗi 502 Harvester)
+echo "🛡️ 3b. Kiểm tra & chuẩn hóa CAPI CRDs (ngăn ngừa lỗi 502 Harvester Webhook)..."
+for crd in $(kubectl --kubeconfig="${HARVESTER_KUBECONFIG}" get crd -o custom-columns=NAME:.metadata.name --no-headers 2>/dev/null | grep 'cluster\.x-k8s\.io' || true); do
+  STRAT=$(kubectl --kubeconfig="${HARVESTER_KUBECONFIG}" get crd "${crd}" -o jsonpath='{.spec.conversion.strategy}' 2>/dev/null || true)
+  if [[ "${STRAT}" == "Webhook" ]]; then
+    echo "   Vá CRD ${crd} về strategy: None..."
+    kubectl --kubeconfig="${HARVESTER_KUBECONFIG}" patch crd "${crd}" --type=merge -p '{"spec":{"conversion":{"strategy":"None","webhook":null}}}' 2>/dev/null || true
+  fi
+done
+
+# 4. Chờ Auto-Healer vá TLS Secret
 echo "🛡️ 4. Chờ Auto-Healer cấu hình và bảo vệ chứng chỉ TLS (cattle-system)..."
 for i in {1..40}; do
   STATIC_STATUS=$(kubectl --kubeconfig="${HARVESTER_KUBECONFIG}" -n cattle-system get secret tls-rancher-internal -o jsonpath='{.metadata.annotations.listener\.cattle\.io/static}' 2>/dev/null || echo "")

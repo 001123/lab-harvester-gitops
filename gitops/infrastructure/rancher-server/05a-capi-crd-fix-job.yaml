@@ -1,0 +1,95 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: harvester-capi-crd-fix
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: harvester-capi-crd-fix
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: harvester-capi-crd-fix
+subjects:
+  - kind: ServiceAccount
+    name: harvester-capi-crd-fix
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: harvester-capi-crd-fix
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: harvester-capi-crd-fix
+  namespace: default
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  ttlSecondsAfterFinished: 120
+  backoffLimit: 2
+  template:
+    metadata:
+      name: harvester-capi-crd-fix
+      labels:
+        app: harvester-capi-crd-fix
+    spec:
+      serviceAccountName: harvester-capi-crd-fix
+      restartPolicy: OnFailure
+      containers:
+        - name: crd-fixer
+          image: rancher/rancher-agent:v2.15.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "=== [$(date)] Harvester CAPI CRD One-Shot Migration Job Started ==="
+
+              CAPI_CRDS=(
+                "clusterclasses.cluster.x-k8s.io"
+                "clusterresourcesetbindings.addons.cluster.x-k8s.io"
+                "clusterresourcesets.addons.cluster.x-k8s.io"
+                "clusters.cluster.x-k8s.io"
+                "extensionconfigs.runtime.cluster.x-k8s.io"
+                "ipaddressclaims.ipam.cluster.x-k8s.io"
+                "ipaddresses.ipam.cluster.x-k8s.io"
+                "machinedeployments.cluster.x-k8s.io"
+                "machinedrainrules.cluster.x-k8s.io"
+                "machinehealthchecks.cluster.x-k8s.io"
+                "machinepools.cluster.x-k8s.io"
+                "machines.cluster.x-k8s.io"
+                "machinesets.cluster.x-k8s.io"
+              )
+
+              PATCHED_COUNT=0
+              for crd in "${CAPI_CRDS[@]}"; do
+                STRAT=$(kubectl get crd "${crd}" -o jsonpath='{.spec.conversion.strategy}' 2>/dev/null || true)
+                if [[ "${STRAT}" == "Webhook" ]]; then
+                  echo "⚠️ CRD ${crd} has broken conversion Webhook. Patching to strategy: None..."
+                  kubectl patch crd "${crd}" --type=merge -p '{"spec":{"conversion":{"strategy":"None","webhook":null}}}'
+                  PATCHED_COUNT=$((PATCHED_COUNT + 1))
+                else
+                  echo "✅ CRD ${crd} strategy is already '${STRAT:-None}' (healthy)."
+                fi
+              done
+
+              echo "🎉 [$(date)] CAPI CRD verification completed. Patched: ${PATCHED_COUNT} CRDs."
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

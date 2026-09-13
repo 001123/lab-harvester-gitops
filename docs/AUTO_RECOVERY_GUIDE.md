@@ -4,7 +4,7 @@ Tài liệu này giải thích chi tiết cơ chế **Tự Phục Hồi Toàn Di
 
 ---
 
-## 1. Kiến Trúc Tự Phục Hồi Đa Tầng (Multi-Tier Self-Healing)
+## 1. Kiến Trúc Tự Phục Hồi Đa Tầng Chuẩn Hóa (Clean GitOps Architecture)
 
 ```mermaid
 graph TD
@@ -12,65 +12,63 @@ graph TD
         PowerCycle["Máy chủ vật lý khởi động lại (Reboot)"]
     end
 
-    subgraph "Tầng 1: Harvester HCI Core"
+    subgraph "Tầng 1: Harvester HCI Core (Persistent etcd & One-Shot Job)"
         PowerCycle --> RKE2_Host["RKE2 Host (ha-i5) Boot"]
-        RKE2_Host --> HealerDaemon["Daemon: harvester-agent-healer"]
-        HealerDaemon -->|1. Quét & Vá CRD CAPI| CRDFix["Patch cluster.x-k8s.io -> strategy: None"]
-        CRDFix -->|Ngăn chặn lỗi 502| HarvesterAPI["Harvester API Server (Port 8443) READY"]
-        HealerDaemon -->|2. Tự động ép runStrategy| VMFix["Patch VM runStrategy -> Always"]
-        HealerDaemon -->|3. Bảo vệ TLS Steve Tunnel| TLSFix["Khóa static tls-rancher-internal Secret"]
+        RKE2_Host --> EtcdState["etcd lưu sẵn CRD CAPI (strategy: None)"]
+        EtcdState -->|Đảm bảo reflector không nghẽn| HarvesterAPI["Harvester API Server (Port 8443) READY"]
+        SyncTrigger["Argo CD Sync / Upgrade"] --> CRDJob["Job: harvester-capi-crd-fix"]
+        CRDJob -->|Vá 1 lần & hoàn thành| CRDComplete["Completed & Auto-clean"]
     end
 
-    subgraph "Tầng 2: Hạ Tầng Máy Ảo KubeVirt"
+    subgraph "Tầng 2: Hạ Tầng Máy Ảo Declarative (GitOps Always)"
         HarvesterAPI --> VMController["Harvester VMController Active"]
-        VMFix --> KubeVirt["KubeVirt Virt-Controller"]
         VMController -->|Giải phóng finalizer VMI cũ| CleanVMI["Dọn dẹp VMI Failed"]
-        CleanVMI --> KubeVirt
+        CleanVMI --> KubeVirt["KubeVirt Virt-Controller"]
+        GitOpsDeclarative["GitOps 03-vm.yaml (spec.runStrategy: Always)"] --> KubeVirt
         KubeVirt -->|Tự động spawn lại| StartVMs["Khởi động Rancher & 3 Nodes RKE2"]
     end
 
-    subgraph "Tầng 3: Quản Trị & Downstream RKE2"
+    subgraph "Tầng 3: Quản Trị, TLS Healer & Downstream RKE2"
         StartVMs --> RVM["Rancher Server VM (Port 31443)"]
         StartVMs --> RKE2["Cụm RKE2 (1 CP + 2 WK)"]
-        RVM --> SyncCluster["Rancher Re-sync & Kubeconfig Ready"]
-        RKE2 --> AgentConnect["cattle-cluster-agent kết nối Rancher"]
+        Healer["harvester-agent-healer (Scoped TLS)"] -->|Bảo vệ static SAN| TLSProtect["cattle-cluster-agent READY"]
+        TLSProtect --> SyncCluster["Rancher Re-sync & Kubeconfig Ready"]
+        RKE2 --> AgentConnect["RKE2 Nodes kết nối Rancher"]
         AgentConnect --> ArgoCD["Argo CD Hub (Port 30080) Sync 100% Apps"]
     end
 ```
 
 ---
 
-## 2. Chi Tiết Các Cơ Chế Tự Phục Hồi
+## 2. Chi Tiết Các Cơ Chế Tự Phục Hồi Chuẩn Hóa
 
-### Tầng 1: Triệt tiêu vĩnh viễn lỗi 502 Harvester Web UI (CRD CAPI Healing)
-- **Bản chất lỗi**: 
-  - Trước đây, một số Custom Resource Definition thuộc nhóm `cluster.x-k8s.io` (như `machines`, `clusters`, `machinedeployments`) có khai báo `spec.conversion.strategy: Webhook` trỏ tới `capi-webhook-service.cattle-capi-system.svc:443`.
-  - Do service này không tồn tại, reflector cache của Harvester API Server bị lỗi kết nối liên tục, khiến tiến trình khởi động bị nghẽn và **không bao giờ mở cổng HTTPS 8443**. Nginx Ingress nhận phản hồi `Connection refused` $\rightarrow$ Trả về **`502 Bad Gateway`**.
-- **Giải pháp Tự Phục Hồi**:
-  - Daemon [`harvester-agent-healer`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/05-harvester-agent-healer.yaml) chạy thường trực ngầm trên cụm Harvester.
-  - Mỗi chu kỳ 15 giây, Healer tự động rà soát toàn bộ CRD trong cụm. Nếu phát hiện bất kỳ CRD `cluster.x-k8s.io` nào có `strategy: Webhook`, Healer sẽ **tự động patch về `strategy: None`** ngay lập tức.
-  - Ngăn ngừa hoàn toàn nguy cơ lỗi 502 quay trở lại ngay cả sau khi nâng cấp hệ thống hoặc cài đè manifest.
-
----
-
-### Tầng 2: Khôi phục máy ảo tự động sau cúp điện (`runStrategy: Always`)
-- **Bản chất lỗi**:
-  - Mặc định các máy ảo dùng `runStrategy: RerunOnFailure`. Khi mất điện hoặc tắt máy đột ngột, instance trước đó bị KubeVirt ghi nhận là `Phase: Failed`.
-  - Nếu Harvester Controller bị nghẽn, finalizer `wrangler.cattle.io/VMController.BackfillObservedNetworkMacAddress` không được gỡ bỏ, khiến máy ảo bị kẹt vĩnh viễn ở trạng thái `Stopped`.
-- **Giải pháp Tự Phục Hồi**:
-  - Chuyển `runStrategy: Always` trong [`gitops/infrastructure/rancher-server/03-vm.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/03-vm.yaml).
-  - Với chế độ `Always`, KubeVirt bắt buộc phải duy trì trạng thái chạy cho máy ảo bất kể nguyên nhân dừng trước đó.
-  - Daemon Healer tự động kiểm tra và nâng cấp toàn bộ VM trong namespace `default` lên chế độ `Always`.
-  - Khi Harvester API hoạt động bình thường, VMController tự động xóa VMI cũ trong 2 giây và khởi động lại toàn bộ máy ảo.
+### Tầng 1: Triệt tiêu vĩnh viễn lỗi 502 Harvester Web UI (CAPI Migration Job & etcd Persistence)
+- **Bản chất kỹ thuật**: 
+  - Trước đây, một số CRD `cluster.x-k8s.io` có cấu hình `spec.conversion.strategy: Webhook` trỏ tới `capi-webhook-service.cattle-capi-system.svc:443` (service không tồn tại).
+  - Khi Harvester API Server khởi động, reflector cache bị nghẽn vĩnh viễn khi watch các CRD này, dẫn tới cổng 8443 không mở và Nginx Ingress báo **`502 Bad Gateway`**.
+- **Giải pháp chuẩn hóa (Kubernetes Job & Declarative)**:
+  - CRD sau khi được đưa về `spec.conversion.strategy: None` sẽ được lưu bền vững trong cơ sở dữ liệu `etcd` của Host. Do đó, **khi reboot máy chủ, etcd vẫn giữ nguyên trạng thái `None` mà không bị mất**.
+  - File [`gitops/infrastructure/rancher-server/05a-capi-crd-fix-job.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/05a-capi-crd-fix-job.yaml) định nghĩa Kubernetes `Job` với hook `argocd.argoproj.io/hook: Sync`.
+  - Mỗi khi đồng bộ hoặc sau nâng cấp hệ thống, Job chạy 1 lần duy nhất để rà soát toàn bộ 13 CRD CAPI, xác nhận hợp lệ rồi tự động kết thúc (`Completed`) và dọn dẹp sau 120 giây. Không tạo vòng lặp chạy nền liên tục.
 
 ---
 
-### Tầng 3: Tự chữa lành chứng chỉ nội bộ Rancher Agent (Steve Tunnel)
-- **Bản chất lỗi**:
-  - Gói đăng ký `cattle-cluster-agent` mặc định sinh chứng chỉ động (dynamiclistener). Khi IP cụm thay đổi hoặc khi khởi động lại, chứng chỉ này có thể bị mất SAN Node IP / VIP dẫn đến lỗi `503 Handler disconnected`.
-- **Giải pháp Tự Phục Hồi**:
-  - Daemon Healer tự động trích xuất CA nội bộ của Rancher, tổng hợp SAN IP (Node IP `192.168.250.2`, VIP `192.168.250.20`, ClusterIP), tự ký chứng chỉ và gắn cờ `listener.cattle.io/static: "true"`.
-  - Đảm bảo kết nối giữa Harvester và Rancher Server không bao giờ bị đứt gãy.
+### Tầng 2: Khôi phục máy ảo tự động bằng GitOps Declarative (`runStrategy: Always`)
+- **Bản chất kỹ thuật**:
+  - Mặc định máy ảo tạo thủ công có thể dùng `RerunOnFailure`. Khi cúp điện đột ngột, instance bị đánh dấu `Failed` và có thể kẹt finalizer mạng nếu apiserver chưa sẵn sàng.
+- **Giải pháp chuẩn hóa**:
+  - Khai báo trực tiếp `spec.runStrategy: Always` trong file [`gitops/infrastructure/rancher-server/03-vm.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/03-vm.yaml).
+  - Argo CD với chính sách `selfHeal: true` bảo đảm KubeVirt luôn duy trì trạng thái chạy cho máy ảo mà không cần bất kỳ script nào can thiệp từ bên ngoài.
+  - Ngay khi Harvester API hoạt động, KubeVirt lập tức tạo pod launcher mới và bật lại máy ảo.
+
+---
+
+### Tầng 3: Giám sát chứng chỉ nội bộ Rancher Agent (Scoped TLS Healer)
+- **Bản chất kỹ thuật**:
+  - Cơ chế Dynamic Listener của Rancher xung đột với Virtual IP (VIP) của Harvester, có thể gây mất SAN IP dẫn đến `503 Handler disconnected`.
+- **Giải pháp chuẩn hóa**:
+  - Daemon [`harvester-agent-healer`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/05-harvester-agent-healer.yaml) được thu hẹp quyền RBAC tối thiểu (chỉ tác động namespace `cattle-system`).
+  - Đóng vai trò watchdog độc lập: Tự động trích xuất CA nội bộ, tạo Secret tĩnh `tls-rancher-internal` kèm đầy đủ SAN Node IP & VIP, gắn cờ `listener.cattle.io/static: "true"` theo đúng tài liệu chính thức từ SUSE Rancher.
 
 ---
 
