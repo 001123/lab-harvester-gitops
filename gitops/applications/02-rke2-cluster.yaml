@@ -13,8 +13,8 @@ spec:
     path: gitops/infrastructure/rke2-cluster
     helm:
       valuesObject:
-        harvesterClusterId: "c-gsrxm"
-        cloudCredentialSecretName: "cc-gxmg8"
+        harvesterClusterId: "c-tlphb"
+        cloudCredentialSecretName: "cc-2v25w"
         kubernetesVersion: "v1.36.4+rke2r1"
   destination:
     name: rancher-server

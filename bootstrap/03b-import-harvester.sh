@@ -37,7 +37,7 @@ CLUSTER_ID=$(kubectl --kubeconfig="${RANCHER_KUBECONFIG}" get clusters.managemen
 
 if [[ -z "${CLUSTER_ID}" ]]; then
   echo "   Chưa tìm thấy cụm 'harvester-local'. Đang tạo mới trên Rancher..."
-  cat <<EOF | kubectl --kubeconfig="${RANCHER_KUBECONFIG}" apply -f -
+  cat <<EOF | kubectl --kubeconfig="${RANCHER_KUBECONFIG}" create -f -
 apiVersion: management.cattle.io/v3
 kind: Cluster
 metadata:
@@ -152,7 +152,7 @@ EOF
   B64_CLUSTER_TYPE=$(echo -n "imported" | base64 | tr -d '\n')
   B64_KUBECONFIG=$(echo -n "${KUBECONFIG_CONTENT}" | base64 | tr -d '\n')
 
-  cat <<EOF | kubectl --kubeconfig="${RANCHER_KUBECONFIG}" apply -f -
+  cat <<EOF | kubectl --kubeconfig="${RANCHER_KUBECONFIG}" create -f -
 apiVersion: v1
 kind: Secret
 metadata:
