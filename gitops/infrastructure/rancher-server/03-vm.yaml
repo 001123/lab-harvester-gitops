@@ -45,6 +45,7 @@ spec:
           sockets: 1
           threads: 1
         devices:
+          autoattachPodInterface: false
           disks:
           - bootOrder: 1
             disk:
