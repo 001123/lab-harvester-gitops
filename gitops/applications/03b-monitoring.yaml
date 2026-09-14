@@ -21,6 +21,8 @@ spec:
         prometheusOperator:
           admissionWebhooks:
             enabled: false
+            patch:
+              enabled: false
         grafana:
           adminPassword: "debug@2026!!"
           persistence:
