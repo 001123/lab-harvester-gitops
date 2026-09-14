@@ -3,8 +3,8 @@ set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 OUTPUT_FILE="$DIR/rke2-kubeconfig.yaml"
-HARVESTER_IP="192.168.250.2"
-RANCHER_HOST="rancher.192.168.250.2.sslip.io:31443"
+RANCHER_IP="192.168.250.30"
+RANCHER_HOST="rancher.192.168.250.30.sslip.io"
 REPO_ROOT="$(cd "$DIR/../../.." && pwd)"
 RANCHER_KUBECONFIG="${REPO_ROOT}/gitops/infrastructure/rancher-server/rancher-k3s-kubeconfig.yaml"
 
@@ -17,10 +17,10 @@ if [[ -f "${RANCHER_KUBECONFIG}" ]]; then
 fi
 
 if [[ -z "${KUBECONFIG_DATA:-}" ]]; then
-  SSH_PORT="31022"
-  KUBECONFIG_DATA=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "opensuse@$HARVESTER_IP" \
+  SSH_PORT="22"
+  KUBECONFIG_DATA=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "opensuse@$RANCHER_IP" \
     "sudo /usr/local/bin/k3s kubectl -n fleet-default get secret rke2-lab-kubeconfig -o jsonpath='{.data.value}'" 2>/dev/null || true)
-  RANCHER_CA=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "opensuse@$HARVESTER_IP" \
+  RANCHER_CA=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p "$SSH_PORT" "opensuse@$RANCHER_IP" \
     "sudo /usr/local/bin/k3s kubectl -n cattle-system get secret tls-rancher-ingress -o jsonpath='{.data.ca\.crt}'" 2>/dev/null || true)
 fi
 

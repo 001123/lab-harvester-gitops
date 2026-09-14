@@ -6,7 +6,6 @@ generators:
 
 resources:
   - 00-image.yaml
-  - 02-services.yaml
   - 03-vm.yaml
   - 05-harvester-agent-healer.yaml
   - 05a-capi-crd-fix-job.yaml

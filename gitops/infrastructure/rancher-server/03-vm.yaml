@@ -58,9 +58,9 @@ spec:
             name: tablet
             type: tablet
           interfaces:
-          - masquerade: {}
+          - bridge: {}
             model: virtio
-            name: default
+            name: nic-0
         features:
           acpi:
             enabled: true
@@ -73,8 +73,9 @@ spec:
             memory: 6Gi
       evictionStrategy: LiveMigrateIfPossible
       networks:
-      - name: default
-        pod: {}
+      - multus:
+          networkName: default/vlan1
+        name: nic-0
       volumes:
       - name: rootdisk
         persistentVolumeClaim:

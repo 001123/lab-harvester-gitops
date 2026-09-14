@@ -66,7 +66,7 @@ metadata:
   namespace: cattle-system
 type: Opaque
 data:
-  url: "aHR0cHM6Ly9yYW5jaGVyLjE5Mi4xNjguMjUwLjIuc3NsaXAuaW86MzE0NDM="
+  url: "aHR0cHM6Ly9yYW5jaGVyLjE5Mi4xNjguMjUwLjMwLnNzbGlwLmlv"
   token: "bW04Zmw5c2J0bHQ2aGZ3cGo2ZnFndnpyYnF3eGZmbno3a3FzZ3c0amNrZ3hmc2tmenR0Mm03"
   namespace: "Yy1nc3J4bQ=="
 
@@ -164,7 +164,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
           - name: CATTLE_SERVER
-            value: "https://rancher.192.168.250.2.sslip.io:31443"
+            value: "https://rancher.192.168.250.30.sslip.io"
           - name: CATTLE_CA_CHECKSUM
             value: "d405ebb0500763f8e3525cb2b66dea5f3576be1b449ba9479b20b254326e1ff5"
           - name: CATTLE_CLUSTER

@@ -143,11 +143,11 @@ Toàn bộ `platform` và `workloads` sẽ tự động được Argo CD đồng
 
 - **Argo CD Hub Web UI**: [http://192.168.250.2:30080](http://192.168.250.2:30080)
   - Tài khoản: `admin`
-- **Rancher Server Web UI**: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443)
+- **Rancher Server Web UI**: [https://rancher.192.168.250.30.sslip.io](https://rancher.192.168.250.30.sslip.io) (Cổng HTTPS 443 chuẩn)
   - Tài khoản: `admin` / Mật khẩu: `admin@2026!!`
 - **SSH máy ảo Rancher**:
   ```bash
-  ssh -p 31022 opensuse@192.168.250.2
+  ssh opensuse@192.168.250.30
   ```
 - **Kubeconfig RKE2**:
   ```bash

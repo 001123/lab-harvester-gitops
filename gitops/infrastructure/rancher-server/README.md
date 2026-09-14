@@ -9,14 +9,13 @@ Thư mục này chứa toàn bộ cấu hình khai báo **Infrastructure as Code
 | Tập tin | Chức năng |
 | :--- | :--- |
 | [`00-image.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/00-image.yaml) | Khai báo `VirtualMachineImage` cho openSUSE Leap Micro 6.2 (qcow2 cloud image) trên Harvester. |
-| [`01-cloud-init.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/01-cloud-init.yaml) | Secret `rancher-cloudinit` (đã mã hóa bảo mật với **SOPS + Age**). Tự động tạo user `opensuse`, cấu hình SSH key, và chạy script bootstrap cài K3s, Helm v3, Cert-Manager, Rancher Manager. |
-| [`02-services.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/02-services.yaml) | Khai báo các NodePort Services để mở cổng ra mạng vật lý của Harvester Node (`192.168.250.2`). |
-| [`03-vm.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/03-vm.yaml) | Khai báo máy ảo KubeVirt `VirtualMachine`: 2 vCPU, 6 GiB RAM, 32 GiB Block Disk qua Longhorn StorageClass. |
-| [`04-harvester-ui-extension.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/04-harvester-ui-extension.yaml) | Khai báo các `ClusterRepo` (Official, Partner Extensions) và `UIPlugin` để tự động kích hoạt Harvester UI Extension trong Rancher. |
+| [`01-cloud-init.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/01-cloud-init.yaml) | Secret `rancher-cloudinit` (mã hóa **SOPS + Age**). Cấu hình static IP `192.168.250.30`, user `opensuse`, SSH key, bootstrap K3s, Helm v3, Cert-Manager, Rancher Manager. |
+| [`03-vm.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/03-vm.yaml) | Khai báo máy ảo KubeVirt `VirtualMachine`: 2 vCPU, 6 GiB RAM, 32 GiB Block Disk, kết nối Bridge VLAN `default/vlan1`. |
+| [`04-harvester-ui-extension.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/04-harvester-ui-extension.yaml) | Khai báo các `ClusterRepo` và `UIPlugin` để tự động kích hoạt Harvester UI Extension trong Rancher. |
 | [`harvester-import.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/harvester-import.yaml) | Khai báo `cattle-cluster-agent` để kết nối và đăng ký cụm Harvester HCI vào quản trị trên Rancher. |
 | [`kustomization.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/kustomization.yaml) | Đóng gói toàn bộ tài nguyên trên cho Argo CD đồng bộ lên Harvester. |
-| [`get-kubeconfig.sh`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/get-kubeconfig.sh) | Script tiện ích tự động lấy file Kubeconfig của cụm K3s quản lý Rancher về máy trạm Mac qua SSH. |
-| [`tail-log.sh`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/tail-log.sh) | Script theo dõi log tiến trình bootstrap (`/var/log/rancher-bootstrap.log`) trực tiếp qua SSH. |
+| [`get-kubeconfig.sh`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/get-kubeconfig.sh) | Script tiện ích tự động lấy file Kubeconfig của cụm K3s quản lý Rancher về máy trạm Mac qua SSH port 22. |
+| [`tail-log.sh`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/tail-log.sh) | Script theo dõi log tiến trình bootstrap (`/var/log/rancher-bootstrap.log`) trực tiếp qua SSH port 22. |
 | [`rancher-k3s-kubeconfig.yaml`](file:///Users/timi/lab/lab-harvester/gitops/infrastructure/rancher-server/rancher-k3s-kubeconfig.yaml) | File Kubeconfig truy cập cụm K3s chạy Rancher Server từ máy trạm. |
 
 ---
@@ -30,32 +29,32 @@ Thư mục này chứa toàn bộ cấu hình khai báo **Infrastructure as Code
   - **RAM**: 6 GiB (Reserved Memory: 512 MiB)
   - **Đĩa cứng**: 32 GiB Block Volume (PVC `rancher-server-disk`)
   - **StorageClass**: `lh-eea5b656-bfe6-4970-87fd-c85f3ac90655` (Longhorn replicated storage)
-- **Mạng**: KubeVirt Masquerade Network kết nối qua Service NodePort ra mạng LAN vật lý.
-- **Tính năng cao cấp**: Hỗ trợ ACPI, Live Migration (`LiveMigrateIfPossible`), RunStrategy `RerunOnFailure`.
+- **Mạng**: Bridge Multus Network `default/vlan1` nhận IP tĩnh cố định `192.168.250.30/24`.
+- **Tính năng cao cấp**: Hỗ trợ ACPI, Live Migration (`LiveMigrateIfPossible`), RunStrategy `Always`.
 
 ---
 
 ## 3. Bản Đồ Cổng & Điểm Truy Cập Dịch Vụ
 
-Các cổng được expose ra IP vật lý của máy chủ Harvester (`192.168.250.2`):
+Máy ảo sử dụng IP tĩnh chuyên dụng `192.168.250.30` với toàn bộ các cổng chuẩn Enterprise:
 
-| Cổng Ngoài | Giao Thức | Dịch Vụ Đích Bên Trong VM | Mô Tả & Điểm Truy Cập |
-| :---: | :---: | :---: | :--- |
-| **`31443`** | HTTPS | Rancher Web UI / API (`443`) | **Web UI Rancher**: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443) |
-| **`31022`** | SSH | OpenSSH Server (`22`) | **SSH máy ảo**: `ssh -p 31022 opensuse@192.168.250.2` |
-| **`31643`** | HTTPS | K3s Kubernetes API Server (`6443`) | **K3s API**: Dùng cho file Kubeconfig điều khiển K3s từ xa |
-| **`31080`** | HTTP | HTTP Redirection (`80`) | Chuyển hướng tự động sang HTTPS |
+| Cổng | Giao Thức | Dịch Vụ | Mô Tả & Điểm Truy Cập |
+| :---: | :---: | :--- | :--- |
+| **`443`** | HTTPS | Rancher Web UI / API | **Web UI Rancher**: [https://rancher.192.168.250.30.sslip.io](https://rancher.192.168.250.30.sslip.io) |
+| **`6443`** | HTTPS | K3s Kubernetes API Server | **K3s API**: `https://192.168.250.30:6443` |
+| **`22`** | SSH | OpenSSH Server | **SSH máy ảo**: `ssh opensuse@192.168.250.30` |
+| **`80`** | HTTP | HTTP Redirection | Chuyển hướng tự động sang HTTPS |
 
 ---
 
 ## 4. Thông Tin Đăng Nhập Mặc Định
 
 - **Rancher Web UI**:
-  - **URL**: [https://rancher.192.168.250.2.sslip.io:31443](https://rancher.192.168.250.2.sslip.io:31443)
+  - **URL**: [https://rancher.192.168.250.30.sslip.io](https://rancher.192.168.250.30.sslip.io)
   - **Tài khoản**: `admin`
   - **Mật khẩu**: `admin@2026!!`
 - **SSH OS máy ảo**:
-  - **Lệnh**: `ssh -p 31022 opensuse@192.168.250.2`
+  - **Lệnh**: `ssh opensuse@192.168.250.30`
   - **Mật khẩu**: `rancher@2026!` (hoặc xác thực bằng SSH key cá nhân đã nạp trong SOPS)
   - **Sudo**: Toàn quyền `sudo` không cần mật khẩu (`NOPASSWD: ALL`).
 
