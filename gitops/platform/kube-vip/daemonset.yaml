@@ -44,6 +44,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: NODENAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: cp_enable
           value: "true"
         - name: cp_namespace
@@ -53,11 +57,11 @@ spec:
         - name: vip_leaderelection
           value: "true"
         - name: vip_leaseduration
-          value: "5"
+          value: "30"
         - name: vip_renewdeadline
-          value: "3"
+          value: "20"
         - name: vip_retryperiod
-          value: "1"
+          value: "2"
         - name: address
           value: "192.168.250.99"
         securityContext:
